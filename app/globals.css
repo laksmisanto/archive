@@ -1,0 +1,571 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+/* @import "../styles/_variables.scss";
+@import "../styles/_keyframe-animations.scss"; */
+
+/*===================using style demo========================*/
+
+/* <h1 className="text-xl text-textPrimary ">hello this is the demo to use css variable</h1> */
+/* <button className="bg-btnBg text-btnText hover:bg-btnHover border border-btnBorder"></button> */
+
+@import "tailwindcss";
+
+/* @import "../styles/theme.css";
+@import "../styles/light.css";
+@import "../styles/dark.css"; */
+/* @import "../styles/components.css"; */
+:root {
+  /* brands */
+  --brand: oklch(24.78% 0.126 279.74);
+  /* common */
+  --primary: oklch(0.585 0.233 293.541);
+  --secondary: oklch(27.81% 0.03 256.85);
+  --bg: oklch(98.46% 0.002 247.84);
+  --surface: oklch(98.48% 0.004 247.86);
+  --divider: oklch(88.08% 0.016 235.4);
+  /* Icons */
+  --icon-text: oklch(54.12% 0.021 262.88);
+  --icon-bg: oklch(98.48% 0.004 247.86);
+  --icon-hover: oklch(88.08% 0.016 235.4);
+  --icon-border: oklch(88.08% 0.016 235.4);
+  --icon-muted: oklch(55.22% 0.031 254.51);
+  --icon-disabled: oklch(44.38% 0.033 255.8);
+  --icon-active: oklch(37.66% 0.035 257.01);
+  /* Navigation */
+  --nav-bg: oklch(24.751% 0.00408 264.546);
+  --nav-text: oklch(95.672% 0.00526 248.353);
+  --nav-hover: oklch(0.585 0.233 293.541);
+  --nav-active: oklch(0.585 0.233 293.541);
+  --nav-progressBg: oklch(0.585 0.233 293.541);
+  /* Text colors */
+  --text-primary: oklch(27.515% 0.02681 260.031);
+  --text-secondary: oklch(43.89% 0.021 262.88);
+  --text-body: oklch(36.19% 0.022 262.88);
+  --text-muted: oklch(72.07% 0.015 259.69);
+  --text-disabled: oklch(87.05% 0.011 259.71);
+  --text-hover: oklch(0.585 0.233 293.541);
+  /* input */
+  --input-field: oklch(96.826% 0.00696 248.26);
+  --input-border: oklch(88.08% 0.016 235.4);
+  --input-text: oklch(27.48% 0.027 259.62);
+  --input-placeholder: oklch(72.07% 0.015 259.69);
+  --input-disabled: oklch(87.05% 0.011 259.71);
+  --input-hover: oklch(52.143% 0.14729 250.94);
+  --input-active: oklch(52.143% 0.14729 250.94);
+  --input-focus: oklch(52.143% 0.14729 250.94);
+  /* buttons */
+  --btn-bg: oklch(58.33% 0.183 268.04);
+  --btn-text: oklch(98.3% 0.005 235.66);
+  --btn-border: oklch(58.33% 0.183 268.04);
+  --btn-hover: oklch(51.81% 0.2 271.74);
+  --btn-active: oklch(51.81% 0.2 271.74);
+  /* cards */
+  --card-bg: oklch(100% 0 0);
+  --card-border: oklch(88.08% 0.016 235.4);
+  --card-hover: oklch(98.48% 0.004 247.86);
+  --shadow: oklch(93.705% 0.00011 271.152);
+  /* skeleton color */
+  --skeleton: oklch(87.17% 0.009 258.34);
+  --skeleton-secondary: oklch(80.789% 0.004 253.192);
+  /* status colors */
+  --accent: oklch(76.91% 0.176 72.82);
+  --danger: oklch(54.67% 0.211 25.85);
+  --warning: oklch(76.91% 0.176 72.82);
+  --error: oklch(62.77% 0.194 25.1);
+  --success: oklch(70.47% 0.165 174.61);
+  --pending: oklch(76.91% 0.176 72.82);
+  --progress: oklch(53.48% 0.183 259.04);
+  /* Stats Color */
+  --stats-blue: oklch(0.623 0.176 259.815);
+  --stats-emerald: oklch(0.737 0.137 163.223);
+  --stats-amber: oklch(0.792 0.151 83.434);
+  --stats-red: oklch(0.627 0.257 29.233);
+  --stats-violet: oklch(0.585 0.233 293.541);
+  --stats-cyan: oklch(0.741 0.123 204.936);
+  --stats-pink: oklch(0.658 0.233 356.107);
+  --stats-orange: oklch(0.698 0.213 55.259);
+  --stats-indigo: oklch(0.606 0.182 274.821);
+  --stats-lime: oklch(0.793 0.2 127.678);
+  /* stats soft color */
+  --stats-soft-blue: oklch(0.693 0.142 254.624);
+  --stats-soft-emerald: oklch(0.807 0.132 163.223);
+  --stats-soft-amber: oklch(0.853 0.164 83.434);
+  --stats-soft-red: oklch(0.693 0.215 29.233);
+  --stats-soft-violet: oklch(0.693 0.182 293.541);
+  --stats-soft-cyan: oklch(0.817 0.127 204.936);
+  --stats-soft-pink: oklch(0.717 0.215 356.107);
+  --stats-soft-orange: oklch(0.765 0.213 55.259);
+  --stats-soft-indigo: oklch(0.671 0.162 274.821);
+  --stats-soft-lime: oklch(0.853 0.213 127.678);
+  /* Dashboard */
+  --dashboard-bg: oklch(97.5% 0.003 247);
+  --dashboard-surface: oklch(100% 0 0);
+  --dashboard-card-bg: oklch(100% 0 0);
+
+  /* Sidebar */
+  --sidebar-bg: oklch(23% 0.02 265);
+  --sidebar-border: oklch(31% 0.02 265);
+  --sidebar-text: oklch(95% 0.005 248);
+  --sidebar-muted: oklch(76% 0.01 248);
+  --sidebar-hover: oklch(32% 0.03 265);
+  --sidebar-active: oklch(58% 0.18 268);
+
+  /* Header */
+  --header-bg: oklch(100% 0 0);
+  --header-border: oklch(88.08% 0.016 235.4);
+
+  /* Charts */
+  --chart-grid: oklch(88% 0.01 235);
+  --chart-tooltip: oklch(100% 0 0);
+
+  /* Table */
+  --table-header: oklch(96% 0.004 248);
+  --table-row-hover: oklch(98% 0.004 248);
+
+  /* Activity */
+  --activity-bg: oklch(98% 0.004 248);
+}
+
+.dark {
+  /* brands */
+  --brand: oklch(72.1% 0.134 265.51);
+  /* common */
+  --primary: oklch(0.585 0.233 293.541);
+  --secondary: oklch(31.81% 0.046 256.46);
+  --bg: oklch(18.22% 0 0);
+  --surface: oklch(31.81% 0.046 256.46);
+  --divider: oklch(37.66% 0.035 257.01);
+  /* Icons */
+  --icon-text: oklch(71.05% 0.026 254.61);
+  --icon-bg: oklch(31.81% 0.046 256.46);
+  --icon-hover: oklch(37.66% 0.035 257.01);
+  --icon-border: oklch(37.66% 0.035 257.01);
+  --icon-muted: oklch(55.22% 0.031 254.51);
+  --icon-disabled: oklch(44.38% 0.033 255.8);
+  --icon-active: oklch(37.66% 0.035 257.01);
+  /* Navigation */
+  --nav-bg: oklch(24.751% 0.00408 264.546);
+  --nav-text: oklch(95.672% 0.00526 248.353);
+  --nav-hover: oklch(0.585 0.233 293.541);
+  --nav-active: oklch(0.585 0.233 293.541);
+  --nav-progressBg: oklch(0.585 0.233 293.541);
+  /* Text colors */
+  --text-primary: oklch(98.3% 0.005 235.66);
+  --text-secondary: oklch(86.53% 0.019 253.94);
+  --text-body: oklch(91.73% 0.014 251.24);
+  --text-muted: oklch(55.22% 0.031 254.51);
+  --text-disabled: oklch(44.38% 0.033 255.8);
+  --text-hover: oklch(0.585 0.233 293.541);
+  /* input */
+  --input-field: oklch(31.81% 0.046 256.46);
+  --input-border: oklch(37.66% 0.035 257.01);
+  --input-text: oklch(98.3% 0.005 235.66);
+  --input-placeholder: oklch(55.22% 0.031 254.51);
+  --input-disabled: oklch(44.38% 0.033 255.8);
+  --input-hover: oklch(52.143% 0.14729 250.94);
+  --input-active: oklch(52.143% 0.14729 250.94);
+  --input-focus: oklch(52.143% 0.14729 250.94);
+  /* buttons */
+  --btn-bg: oklch(58.33% 0.183 268.04);
+  --btn-text: oklch(100% 0 0);
+  --btn-border: oklch(58.33% 0.183 268.04);
+  --btn-hover: oklch(72.1% 0.134 265.51);
+  --btn-active: oklch(72.1% 0.134 265.51);
+  /* cards */
+  --card-bg: oklch(20.9% 0 0);
+  --card-border: oklch(37.66% 0.035 257.01);
+  --card-hover: oklch(37.66% 0.035 257.01);
+  --shadow: oklch(12.212% 0.00001 271.152);
+  /* skeleton color */
+  --skeleton: oklch(37.66% 0.035 257.01);
+  --skeleton-secondary: oklch(29.789% 0.02142 254.192);
+  /* status colors */
+  --accent: oklch(84.45% 0.17 76.57);
+  --danger: oklch(62.77% 0.194 25.1);
+  --warning: oklch(84.45% 0.17 76.57);
+  --error: oklch(71.93% 0.155 19.34);
+  --success: oklch(70.47% 0.165 174.61);
+  --pending: oklch(84.45% 0.17 76.57);
+  --progress: oklch(70.9% 0.141 250.77);
+  /* Stats Color */
+  --stats-blue: oklch(0.623 0.176 259.815);
+  --stats-emerald: oklch(0.737 0.137 163.223);
+  --stats-amber: oklch(0.792 0.151 83.434);
+  --stats-red: oklch(0.627 0.257 29.233);
+  --stats-violet: oklch(0.585 0.233 293.541);
+  --stats-cyan: oklch(0.741 0.123 204.936);
+  --stats-pink: oklch(0.658 0.233 356.107);
+  --stats-orange: oklch(0.698 0.213 55.259);
+  --stats-indigo: oklch(0.606 0.182 274.821);
+  --stats-lime: oklch(0.793 0.2 127.678);
+  /* stats soft color */
+  --stats-soft-blue: oklch(0.693 0.142 254.624);
+  --stats-soft-emerald: oklch(0.807 0.132 163.223);
+  --stats-soft-amber: oklch(0.853 0.164 83.434);
+  --stats-soft-red: oklch(0.693 0.215 29.233);
+  --stats-soft-violet: oklch(0.693 0.182 293.541);
+  --stats-soft-cyan: oklch(0.817 0.127 204.936);
+  --stats-soft-pink: oklch(0.717 0.215 356.107);
+  --stats-soft-orange: oklch(0.765 0.213 55.259);
+  --stats-soft-indigo: oklch(0.671 0.162 274.821);
+  --stats-soft-lime: oklch(0.853 0.213 127.678);
+  /* Dashboard */
+  --dashboard-bg: oklch(12.9% 0.042 264.695);
+  --dashboard-surface: oklch(21% 0.02 265);
+  --dashboard-card-bg: oklch(21% 0.02 265);
+
+  /* Sidebar */
+  --sidebar-bg: oklch(15% 0.01 265);
+  --sidebar-border: oklch(28% 0.02 265);
+  --sidebar-text: oklch(95% 0.005 248);
+  --sidebar-muted: oklch(65% 0.02 250);
+  --sidebar-hover: oklch(26% 0.03 265);
+  --sidebar-active: oklch(58% 0.18 268);
+
+  /* Header */
+  --header-bg: oklch(21% 0.02 265);
+  --header-border: oklch(35% 0.03 257);
+
+  /* Stats Cards */
+  --stats-card-1: oklch(27% 0.03 260);
+  --stats-card-2: oklch(27% 0.03 180);
+  --stats-card-3: oklch(27% 0.03 70);
+  --stats-card-4: oklch(27% 0.03 25);
+
+  /* Charts */
+  --chart-grid: oklch(32% 0.02 257);
+  --chart-tooltip: oklch(22% 0.02 265);
+
+  /* Table */
+  --table-header: oklch(24% 0.02 265);
+  --table-row-hover: oklch(28% 0.02 265);
+
+  /* Activity */
+  --activity-bg: oklch(24% 0.02 265);
+}
+/*/ initial values for light theme, will be overridden by .dark class when dark mode is active
+
+============
+
+when you write styles, use the -- variables instead of the --*-light variables, so that they will automatically adapt to dark mode when the .dark class is applied to the root element.
+
+for example, instead of using var(--primary-light), use var(--primary) in your styles. This way, when the .dark class is applied, the --primary variable will be overridden with the dark theme value, and your styles will automatically adapt to the dark mode without needing to change any of your CSS.
+
+formatted as a comment to avoid being included in the final CSS output, but serves as a guide for how to use the theme variables correctly.
+
+--variablesName:var(--variableName) -- IGNORE --
+
+*/
+@theme inline {
+  /* Brands */
+  --color-brand: var(--brand);
+  /* Common */
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-divider: var(--divider);
+  /* Icons */
+  --color-iconText: var(--icon);
+  --color-iconBg: var(--icon-bg);
+  --color-iconHover: var(--icon-hover);
+  --color-iconBorder: var(--icon-border);
+  --color-iconMuted: var(--icon-muted);
+  --color-iconDisabled: var(--icon-disabled);
+  --color-iconActive: var(--icon-active);
+  /* Navigation */
+  --color-navBg: var(--nav-bg);
+  --color-navText: var(--nav-text);
+  --color-navHover: var(--nav-hover);
+  --color-navActive: var(--nav-active);
+  --color-navProgressBg: var(--nav-progressBg);
+  /* Text colors */
+  --color-textPrimary: var(--text-primary);
+  --color-textSecondary: var(--text-secondary);
+  --color-textBody: var(--text-body);
+  --color-textHover: var(--text-hover);
+  --color-textMuted: var(--text-muted);
+  --color-textDisabled: var(--text-disabled);
+  /* Input colors */
+  --color-inputField: var(--input-field);
+  --color-inputBorder: var(--input-border);
+  --color-inputText: var(--input-text);
+  --color-inputPlaceholder: var(--input-placeholder);
+  --color-inputDisabled: var(--input-disabled);
+  --color-inputHover: var(--input-hover);
+  --color-inputActive: var(--input-active);
+  --color-inputFocus: var(--input-focus);
+  /* Button colors */
+  --color-btnBg: var(--btn-bg);
+  --color-btnText: var(--btn-text);
+  --color-btnBorder: var(--btn-border);
+  --color-btnHover: var(--btn-hover);
+  --color-btnActive: var(--btn-active);
+  /* Card colors */
+  --color-cardBg: var(--card-bg);
+  --color-cardBorder: var(--card-border);
+  --color-cardHover: var(--card-hover);
+  --color-shadow: var(--shadow);
+  /* skeleton color */
+  --color-skeleton: var(--skeleton);
+  --color-skeletonSecondary: var(--skeleton-secondary);
+  /* Status colors */
+  --color-accent: var(--accent);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-success: var(--success);
+  --color-pending: var(--pending);
+  --color-progress: var(--progress);
+  /* Stats colors */
+  --color-statsBlue: var(--stats-blue);
+  --color-statsEmerald: var(--stats-emerald);
+  --color-statsAmber: var(--stats-amber);
+  --color-statsRed: var(--stats-red);
+  --color-statsViolet: var(--stats-violet);
+  --color-statsCyan: var(--stats-cyan);
+  --color-statsPink: var(--stats-pink);
+  --color-statsOrange: var(--stats-orange);
+  --color-statsIndigo: var(--stats-indigo);
+  --color-statsLime: var(--stats-lime);
+  /* Stats soft colors */
+  --color-statsSoftBlue: var(--stats-soft-blue);
+  --color-statsSoftEmerald: var(--stats-soft-emerald);
+  --color-statsSoftAmber: var(--stats-soft-amber);
+  --color-statsSoftRed: var(--stats-soft-red);
+  --color-statsSoftViolet: var(--stats-soft-violet);
+  --color-statsSoftCyan: var(--stats-soft-cyan);
+  --color-statsSoftPink: var(--stats-soft-pink);
+  --color-statsSoftOrange: var(--stats-soft-orange);
+  --color-statsSoftIndigo: var(--stats-soft-indigo);
+  --color-statsSoftLime: var(--stats-soft-lime);
+
+  /* Dashboard */
+  --color-dashboardBg: var(--dashboard-bg);
+  --color-dashboardSurface: var(--dashboard-surface);
+  --color-dashboardCardBg: var(--dashboard-card-bg);
+  --color-sidebarBg: var(--sidebar-bg);
+  --color-sidebarBorder: var(--sidebar-border);
+  --color-sidebarText: var(--sidebar-text);
+  --color-sidebarMuted: var(--sidebar-muted);
+  --color-sidebarHover: var(--sidebar-hover);
+  --color-sidebarActive: var(--sidebar-active);
+
+  --color-headerBg: var(--header-bg);
+  --color-headerBorder: var(--header-border);
+
+  --color-chartGrid: var(--chart-grid);
+  --color-chartTooltip: var(--chart-tooltip);
+
+  --color-tableHeader: var(--table-header);
+  --color-tableRowHover: var(--table-row-hover);
+
+  --color-activityBg: var(--activity-bg);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Base styles using the theme variables */
+@layer base {
+  body {
+    background-color: var(--bg);
+    color: var(--text-primary);
+    transition:
+      color 200ms,
+      background-color 200ms;
+  }
+}
+
+/* 4. Reusable Custom Component Rules */
+@layer components {
+  /* Button Component */
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium cursor-pointer;
+    background-color: var(--color-btnBg);
+    color: var(--color-btnText);
+    border: 1px solid var(--color-btnBorder);
+    transition:
+      background-color 0.2s ease-in-out,
+      border-color 0.2s ease-in-out;
+
+    &:hover {
+      background-color: var(--color-btnHover);
+      border-color: var(--color-btnHover);
+      color: var(--color-btnText);
+    }
+
+    &:active {
+      background-color: var(--color-btnActive);
+      border-color: var(--color-btnActive);
+      color: var(--color-btnText);
+    }
+  }
+  .btn-outline {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg border font-medium cursor-pointer;
+    background-color: transparent;
+    border-color: var(--color-btnBorder);
+    color: var(--color-btnBg);
+    transition:
+      background-color 0.2s ease-in-out,
+      border-color 0.2s ease-in-out;
+
+    &:hover {
+      background-color: var(--color-btnHover);
+      border-color: var(--color-btnHover);
+      color: var(--color-btnText);
+    }
+
+    &:active {
+      background-color: var(--color-btnActive);
+      border-color: var(--color-btnActive);
+      color: var(--color-btnText);
+    }
+  }
+
+  /* Input Component */
+  .input-field {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--color-inputBorder);
+    /* background-color: var(--color-inputField); */
+    color: var(--color-inputText);
+    outline: none;
+    transition:
+      border-color 0.2s ease-in-out,
+      box-shadow 0.2s ease-in-out;
+
+    &:focus {
+      border-color: var(--color-inputBorder);
+      /* box-shadow: 0 0 0 4px var(--color-inputBorder); */
+    }
+  }
+
+  /* Card Component */
+  .news-card {
+    background-color: var(--color-cardBg);
+    box-shadow:
+      0 1px 2px var(--shadow),
+      0 4px 12px var(--shadow);
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 4px 6px var(--shadow),
+        0 10px 20px var(--shadow);
+    }
+  }
+
+  /* Dashboard components */
+
+  .card {
+    @apply rounded-xl border p-5;
+    background: var(--color-cardBg);
+    border-color: var(--color-cardBorder);
+  }
+
+  .input {
+    @apply w-full rounded-lg border px-3 py-2 outline-none;
+    background: var(--color-inputField);
+    border-color: var(--color-inputBorder);
+    color: var(--color-inputText);
+  }
+
+  .label {
+    @apply mb-2 block text-sm font-medium;
+    color: var(--color-textSecondary);
+  }
+
+  .btn-primary {
+    @apply flex items-center gap-2 rounded-lg px-4 py-2;
+    background: var(--color-btnBg);
+    color: var(--color-btnText);
+  }
+
+  .btn-secondary {
+    @apply flex items-center gap-2 rounded-lg border px-4 py-2;
+    border-color: var(--color-cardBorder);
+    color: var(--color-textPrimary);
+  }
+  .statsBlue {
+    color: var(--color-statsBlue);
+  }
+  .statsEmerald {
+    color: var(--color-statsEmerald);
+  }
+  .statsAmber {
+    color: var(--color-statsAmber);
+  }
+  .statsRed {
+    color: var(--color-statsRed);
+  }
+  .statsViolet {
+    color: var(--color-statsViolet);
+  }
+  .statsCyan {
+    color: var(--color-statsCyan);
+  }
+  .statsPink {
+    color: var(--color-statsPink);
+  }
+  .statsOrange {
+    color: var(--color-statsOrange);
+  }
+  .statsIndigo {
+    color: var(--color-statsIndigo);
+  }
+  .statsLime {
+    color: var(--color-statsLime);
+  }
+}
+
+/* trasted color in tailwindcss */
+/* 
+background color : bg-gray-100 ;
+forground color : bg-gray-0;
+shadow-sm
+*/
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}
+.animate-slideIn {
+  animation: slideIn 0.25s ease-out;
+}
+.pulse-ring {
+  animation: pulse-ring 1.5s ease-out infinite;
+}
