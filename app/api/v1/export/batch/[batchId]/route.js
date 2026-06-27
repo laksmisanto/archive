@@ -12,7 +12,7 @@ export async function GET(request, { params }) {
     try {
       await connectDB();
       const format = new URL(req.url).searchParams.get("format") || "csv";
-      const batchId = params.batchId;
+      const { batchId } = await params;
 
       const filter = { ownerId: req.user.id, deletedAt: null };
       if (batchId !== "all") filter.batchId = batchId;
@@ -78,10 +78,9 @@ export async function GET(request, { params }) {
         XLSX.utils.book_append_sheet(workbook, sheet, "Archive");
 
         const bookType = format === "xlsx" ? "xlsx" : "xls";
-        const buffer = XLSX.write(workbook, {
-          bookType,
-          type: "buffer",
-        });
+        const buffer = new Uint8Array(
+          XLSX.write(workbook, { bookType, type: "array" }),
+        );
 
         return new NextResponse(buffer, {
           headers: {

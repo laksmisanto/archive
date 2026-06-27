@@ -1,0 +1,1150 @@
+================================================================================
+  NAMS — News Archive Metadata System
+  Project Overview & Workflow Documentation
+================================================================================
+
+WRITTEN FOR LEARNING. Describes every logical layer as it exists in the code.
+No code was modified to produce this file.
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+
+  1.  What This App Is
+  2.  Tech Stack & Key Dependencies
+  3.  Folder Structure Map
+  4.  Database: Models & Schemas
+  5.  Authentication Flow  (login → cookie → guard → me → logout)
+  6.  The withAuth Middleware — How Every Protected Route Works
+  7.  Rate Limiting
+  8.  Import Flow  (file upload → parse → validate → insert)
+  9.  Export Flow  (request → query → format → download)
+  10. Single Record POST Flow  (new record form → API → DB)
+  11. Records API — List, Get, Edit, Delete, Duplicate Check
+  12. Batches — What They Are and Their Full Lifecycle
+  13. Drives & Reporters — Reference Data
+  14. Dashboard Route
+  15. Admin Routes
+  16. Service Layer — What Lives in lib/services/
+  17. API Response Utilities
+  18. Frontend Layout & Auth Guard
+  19. New Record Form — Client-Side Logic in Detail
+  20. Import Page — Client-Side Logic
+  21. Export Page — Client-Side Logic
+  22. Batches Page — Client-Side Logic
+  23. Seed Script
+  24. Data Flow Diagrams (text)
+
+================================================================================
+1. WHAT THIS APP IS
+================================================================================
+
+NAMS is an internal web application for journalists / archive staff.
+Its purpose: manage a metadata index of video recordings.
+
+Core idea:
+  - Staff log in and archive video IDs, each with a drive location, reporter
+    name, and a free-text metadata description.
+  - Records are grouped into daily "batches" (one batch per user per day).
+  - Batches can be committed (locked), exported, or deleted.
+  - Admins can manage users, view all activity, see system-wide stats.
+  - Data can be bulk-imported from spreadsheets and exported to CSV/JSON/XLSX.
+
+The app has no public-facing side. Every page except /login requires a session.
+
+================================================================================
+2. TECH STACK & KEY DEPENDENCIES
+================================================================================
+
+  Runtime         : Node.js (20.9+ required by Next.js 16)
+  Framework       : Next.js 16.2.9  (App Router)
+  React           : 19.2.4
+  Database        : MongoDB, via Mongoose 9.7.0
+  Auth            : JWT (jsonwebtoken), stored as HttpOnly cookie "nams_token"
+  Password hashing: bcryptjs (salt rounds: 12)
+  File parsing    : xlsx 0.18.5 (for XLSX/XLS import and export)
+  Styling         : Tailwind CSS 4
+  Icons           : lucide-react
+
+IMPORTANT — Next.js 16 breaking changes that affect this code:
+  - params in route.js is now a Promise. Must be awaited: const { id } = await params
+  - cookies() and headers() from next/headers are also async (must be awaited)
+  - Dynamic segments accessed synchronously return undefined (not the value)
+
+================================================================================
+3. FOLDER STRUCTURE MAP
+================================================================================
+
+  nams/
+  ├── app/
+  │   ├── page.js                         Root redirect → /dashboard
+  │   ├── layout.js                        Root HTML shell
+  │   ├── globals.css                      Tailwind base styles
+  │   │
+  │   ├── (auth)/
+  │   │   └── login/page.jsx              Login form (client component)
+  │   │
+  │   ├── (dashboard)/                    All protected user pages
+  │   │   ├── layout.jsx                  Checks /api/v1/auth/me on mount
+  │   │   ├── dashboard/page.jsx          Stats overview
+  │   │   ├── records/
+  │   │   │   ├── page.jsx               Record list with search/filter
+  │   │   │   ├── new/page.jsx           New record form
+  │   │   │   └── [id]/
+  │   │   │       ├── page.jsx           Record detail view
+  │   │   │       └── edit/page.jsx      Edit record form
+  │   │   ├── batches/page.jsx           Batch list + commit/delete/export
+  │   │   ├── import/page.jsx            File upload UI
+  │   │   ├── export/page.jsx            Export buttons UI
+  │   │   └── settings/page.jsx          User settings
+  │   │
+  │   ├── (admin)/                        Admin-only pages
+  │   │   ├── layout.jsx                  Admin auth check
+  │   │   └── admin/
+  │   │       ├── users/page.jsx
+  │   │       ├── reporters/page.jsx
+  │   │       ├── drives/page.jsx
+  │   │       └── activity/page.jsx
+  │   │
+  │   └── api/v1/                         All API routes (Next.js Route Handlers)
+  │       ├── auth/
+  │       │   ├── login/route.js          POST — authenticate
+  │       │   ├── logout/route.js         POST — clear cookie
+  │       │   └── me/route.js            GET  — current user
+  │       ├── records/
+  │       │   ├── route.js               GET (list), POST (create)
+  │       │   ├── [id]/route.js          GET, PUT, DELETE single record
+  │       │   └── check-duplicate/route.js GET — videoId uniqueness check
+  │       ├── batches/
+  │       │   ├── route.js               GET (list), POST (get-or-create today)
+  │       │   └── [id]/
+  │       │       ├── route.js           GET, DELETE
+  │       │       └── commit/route.js    POST — commit batch
+  │       ├── import/route.js             POST — file upload & parse
+  │       ├── export/batch/[batchId]/route.js  GET — download file
+  │       ├── drives/
+  │       │   ├── route.js               GET, POST
+  │       │   └── [id]/route.js          DELETE
+  │       ├── reporters/
+  │       │   ├── route.js               GET, POST
+  │       │   └── [id]/route.js          DELETE
+  │       ├── dashboard/route.js          GET — user dashboard stats
+  │       └── admin/
+  │           ├── users/route.js          GET, POST
+  │           ├── users/[id]/route.js    PUT, DELETE
+  │           ├── activity/route.js      GET — all logs
+  │           └── stats/route.js         GET — system-wide stats
+  │
+  ├── lib/
+  │   ├── auth/jwt.js                     signToken, verifyToken
+  │   ├── db/
+  │   │   ├── mongoose.js                 connectDB (cached connection)
+  │   │   └── models/
+  │   │       ├── User.js
+  │   │       ├── ArchiveRecord.js
+  │   │       ├── Batch.js
+  │   │       ├── Drive.js
+  │   │       ├── Reporter.js
+  │   │       └── ActivityLog.js
+  │   ├── middleware/
+  │   │   ├── auth.js                     withAuth() wrapper
+  │   │   └── rateLimit.js               In-memory rate limiter
+  │   ├── services/                       Reusable data-access functions
+  │   │   ├── archiveService.js
+  │   │   ├── batchService.js
+  │   │   ├── dashboardService.js
+  │   │   ├── exportService.js
+  │   │   └── importService.js
+  │   └── utils/
+  │       ├── apiResponse.js             ok(), err(), unauthorized(), etc.
+  │       ├── asyncHandler.js
+  │       └── seed.js                    One-time admin user creation script
+
+================================================================================
+4. DATABASE: MODELS & SCHEMAS
+================================================================================
+
+MongoDB collection names are Mongoose's auto-pluralized lowercase versions.
+
+-------- User (collection: users) --------
+
+  username     String, unique, lowercase, required
+  email        String, unique, lowercase, required
+  passwordHash String, required, select: false  ← NOT returned by default queries
+  role         String, enum: ['admin','user'], default: 'user'
+  isActive     Boolean, default: true
+  deletedAt    Date, default: null              ← soft delete flag
+
+  Indexes: role, deletedAt
+  Soft-delete pattern: instead of removing, set deletedAt to a Date.
+  All active-user queries filter { isActive: true, deletedAt: null }.
+
+-------- ArchiveRecord (collection: archiverecords) --------
+
+  videoId      String, required, trimmed
+  driveId      ObjectId → Drive
+  driveLabel   String (denormalized label for fast reads without join)
+  reporterId   ObjectId → Reporter
+  reporterName String (denormalized, same reason)
+  metadata     String, required, max 10000 chars
+  ownerId      ObjectId → User, required
+  batchId      ObjectId → Batch
+  status       String, enum: ['draft','committed'], default: 'draft'
+  deletedAt    Date, default: null
+
+  Unique compound index: { ownerId, videoId }  ← prevents same video twice per user
+  Text index on: metadata, videoId, reporterName, driveLabel
+    weights: metadata=10, videoId=5, reporterName=3, driveLabel=1
+    ← enables full-text search with relevance scoring
+
+  Note: driveLabel and reporterName are stored directly on each record
+  (denormalization). This allows export/display without extra joins,
+  and keeps the export query simple.
+
+-------- Batch (collection: batches) --------
+
+  ownerId      ObjectId → User, required
+  date         Date, required  (stored as midnight UTC for the day)
+  label        String  e.g. "Batch 2026-06-28"
+  status       String, enum: ['open','committed','archived'], default: 'open'
+  recordCount  Number, default: 0  ← incremented on each record insert
+  exportedAt   Date, default: null
+  committedAt  Date, default: null
+  archivedAt   Date, default: null
+  deletedAt    Date, default: null
+
+  Unique compound index: { ownerId, date }  ← one batch per user per day
+
+  Lifecycle:
+    open → committed (via /commit endpoint, locks the batch)
+    Either status → soft-deleted (deletedAt set, cascades to records)
+
+-------- Drive (collection: drives) --------
+
+  label     String, required  (e.g. "Drive-A", "WC-NWS-01")
+  ownerId   ObjectId → User, required
+  location  String (physical shelf/rack location, optional)
+  isActive  Boolean, default: true
+  deletedAt Date, default: null
+
+  Unique index: { ownerId, label }
+
+-------- Reporter (collection: reporters) --------
+
+  name      String, required
+  ownerId   ObjectId → User, required
+  isActive  Boolean, default: true
+  deletedAt Date, default: null
+
+  Unique index: { ownerId, name }
+
+-------- ActivityLog (collection: activitylogs) --------
+
+  userId     ObjectId → User, required
+  username   String (snapshot of username at time of action)
+  action     String, enum: ['CREATE','EDIT','DELETE','IMPORT','EXPORT',
+                             'LOGIN','LOGOUT','COMMIT']
+  entityType String  (e.g. 'archiveRecord', 'batch')
+  entityId   ObjectId
+  meta       Mixed   (free-form data, e.g. { count: 50, format: 'csv' })
+  ip         String  (only stored for LOGIN events)
+
+================================================================================
+5. AUTHENTICATION FLOW
+================================================================================
+
+STEP 1 — Login (POST /api/v1/auth/login)
+-----------------------------------------
+  a) Browser sends: { username, password } as JSON
+  b) Rate limit check:
+       Key = "login:<clientIP>:<username>"
+       Allows max 5 attempts per 60 seconds per IP+username combo.
+       Exceeding returns HTTP 429 with Retry-After: 60 header.
+  c) Database lookup:
+       User.findOne({ username: normalized, isActive: true, deletedAt: null })
+       .select("+passwordHash")  ← explicitly include the hidden field
+       .lean()
+  d) If no user found → return 401 "Invalid credentials"
+     (same error as wrong password, to prevent username enumeration)
+  e) bcrypt.compare(password, user.passwordHash)
+       If mismatch → return 401 "Invalid credentials"
+  f) signToken({ sub: user._id.toString(), role: user.role })
+       Creates a JWT with:
+         payload: { sub: "<userId>", role: "user"|"admin" }
+         secret: process.env.JWT_SECRET
+         expiry: process.env.JWT_EXPIRY (default "8h")
+  g) ActivityLog.create({ action: "LOGIN", userId, username, ip })
+  h) Return JSON: { success: true, data: { user: { id, username, email, role } } }
+     Set cookie: nams_token=<jwt>
+       httpOnly: true         ← JavaScript cannot read this cookie
+       secure: true (prod)    ← HTTPS only in production
+       sameSite: "lax"        ← CSRF protection
+       maxAge: 28800          ← 8 hours (matches JWT expiry)
+       path: "/"
+
+STEP 2 — Every Subsequent Request
+-----------------------------------
+  The browser automatically sends the nams_token cookie with every request
+  to the same origin. The server reads it via:
+    request.cookies.get("nams_token")?.value
+
+STEP 3 — Auth Guard (withAuth middleware)
+------------------------------------------
+  See Section 6 for full detail.
+
+STEP 4 — Checking Current User (GET /api/v1/auth/me)
+------------------------------------------------------
+  Used by the dashboard layout on every page load.
+  - Calls withAuth, which validates the cookie and attaches req.user
+  - Fetches fresh user data: User.findById(req.user.id).lean()
+  - Returns: { id, username, email, role }
+  - The dashboard layout calls this on mount. If it fails (cookie expired,
+    invalid), the user is redirected to /login.
+
+STEP 5 — Logout (POST /api/v1/auth/logout)
+--------------------------------------------
+  - No auth required (no token needed to log out)
+  - Sets the cookie to empty with maxAge: 0 (immediate expiry)
+  - Browser discards the cookie
+  - No database operation (JWT is stateless; there's no token blacklist)
+
+================================================================================
+6. THE withAuth MIDDLEWARE — HOW EVERY PROTECTED ROUTE WORKS
+================================================================================
+
+File: lib/middleware/auth.js
+
+  export async function withAuth(request, handler, { requireRole } = {}) {
+    1. Read cookie:
+         const token = request.cookies.get("nams_token")?.value
+         If missing → return 401 Unauthorized
+
+    2. Verify JWT:
+         const decoded = verifyToken(token)
+         If invalid/expired → return 401 Unauthorized
+         decoded = { sub: "<userId>", role: "...", iat, exp }
+
+    3. Connect to DB and load user:
+         User.findOne({ _id: decoded.sub, isActive: true, deletedAt: null }).lean()
+         If user not found (deactivated, deleted) → return 401
+
+    4. Role check (optional):
+         If requireRole === 'admin' and user.role !== 'admin' → return 403 Forbidden
+
+    5. Attach user to request:
+         request.user = {
+           id: user._id.toString(),   ← string form of ObjectId
+           role: user.role,
+           username: user.username,
+         }
+
+    6. Call the actual handler:
+         return handler(request)
+  }
+
+Usage pattern in every route:
+  export async function GET(request, { params }) {
+    return withAuth(request, async (req) => {
+      // req.user is available here
+      // req.user.id, req.user.role, req.user.username
+    });
+  }
+
+Admin-only routes additionally check:
+  if (req.user.role !== 'admin') return forbidden();
+  (Some routes pass { requireRole: 'admin' } to withAuth; others do the
+  check manually inside the handler.)
+
+================================================================================
+7. RATE LIMITING
+================================================================================
+
+File: lib/middleware/rateLimit.js
+
+  - In-memory Map: key → { count, start }
+  - Called as: rateLimit(key, maxRequests, windowMs)
+  - Only used on the login route: max 5 attempts / 60s per IP+username
+  - Returns true (allowed) or false (blocked)
+  - Limitation: resets when the server restarts; not shared across
+    multiple server instances (single-server use case)
+
+================================================================================
+8. IMPORT FLOW
+================================================================================
+
+The import system lets users upload a spreadsheet or JSON file containing
+many archive records at once.
+
+---- Client Side (app/(dashboard)/import/page.jsx) ----
+
+  1. User picks a file via drag-and-drop or file input.
+  2. Client-side validation:
+       - Extension must be: csv, json, xlsx, xls
+       - Max file size: 50MB
+  3. File is wrapped in FormData: fd.append("file", file)
+  4. POST /api/v1/import  with multipart/form-data body
+  5. Response shows a summary: total rows / inserted / skipped / errors
+
+---- Server Side (app/api/v1/import/route.js) ----
+
+  Auth: withAuth required.
+
+  Step A — Parse the file:
+    The file is extracted from FormData: req.formData() → formData.get("file")
+    Extension is checked again server-side.
+
+    parseRowsFromFile(file) handles three formats:
+
+    JSON:
+      file.arrayBuffer() → Buffer.from(raw).toString("utf8") → JSON.parse()
+      Must be an array of objects.
+
+    CSV:
+      Buffer → string → split on newlines → first line = headers
+      Remaining lines parsed column-by-column using regex match.
+      Headers are lowercased and trimmed for flexible matching.
+
+    XLSX / XLS:
+      XLSX.read(Buffer.from(raw), { type: "buffer" })
+      workbook.Sheets[workbook.SheetNames[0]] → first sheet
+      XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false })
+      Returns array of plain objects with column headers as keys.
+
+  Step B — Get or create today's batch:
+    Today = new Date() with hours/minutes/seconds zeroed.
+    Batch.findOneAndUpdate(
+      { ownerId, date: today },
+      { $setOnInsert: { label, status: "open", recordCount: 0, ... } },
+      { upsert: true, new: true }
+    )
+    If a batch for today already exists, returns it. Otherwise creates it.
+    Result: batch._id is used for all records in this import.
+
+  Step C — Load reference data for matching:
+    Runs three parallel queries:
+      Reporter.find({ ownerId, deletedAt: null })
+      Drive.find({ ownerId, deletedAt: null })
+      ArchiveRecord.find({ ownerId, deletedAt: null }).select("videoId")
+
+    Builds lookup maps:
+      existingSet    = Set of all current videoIds (for duplicate detection)
+      reporterMap    = { "reporter name lowercase" → reporter doc }
+      driveMap       = { "drive label lowercase" → drive doc }
+
+  Step D — Process each row:
+    normalizeField() checks multiple possible column names for flexibility:
+      videoId   ← looks for: videoid, video_id, video id, id, ID
+      metadata  ← looks for: metadata, description, desc, Meta Data
+      reporter  ← looks for: reporter, reportername, Reporter
+      drive     ← looks for: drive, drivelabel, drive_label, drive number, Drive Name
+
+    For each row:
+      - Skip if videoId is empty → error: "Missing videoId"
+      - Skip if metadata is empty → error: "Missing metadata"
+      - Skip if videoId already in existingSet → skipped (duplicate)
+        Add to existingSet to prevent duplicates within the same file.
+
+      - Reporter: if reporterName not empty and not in reporterMap,
+        auto-create: Reporter.create({ name, ownerId })
+        ← reporters are created on the fly during import
+
+      - Drive: if driveLabel not empty, look up driveMap.
+        If drive not found in driveMap, push an error for that row.
+        ← drives must already exist; they are NOT auto-created during import
+        (Note: the inline import route does this differently from importService.js
+         which errors on missing drives. The route auto-creates reporters but
+         silently leaves driveId null if drive not found.)
+
+      - Build insert doc: { videoId, metadata, reporterId, reporterName,
+          driveId, driveLabel, ownerId, batchId, status: "committed" }
+
+  Step E — Bulk insert:
+    ArchiveRecord.insertMany(toInsert, { ordered: false })
+    ordered: false means: if one doc fails (e.g. duplicate key), the others
+    still get inserted.
+    On duplicate key error (code 11000), counts insertedDocs.length.
+
+  Step F — Update batch record count:
+    Batch.findByIdAndUpdate(batch._id, { $inc: { recordCount: inserted } })
+
+  Step G — Log the action:
+    ActivityLog.create({ action: "IMPORT", meta: { total, inserted, skipped, errors } })
+
+  Step H — Return summary:
+    { total, inserted, skipped, errors: [{ row, reason }, ...] }
+
+  Note: There is also a service at lib/services/importService.js with a
+  processImport() function. It uses slightly stricter logic (Drive must exist
+  or row is an error). The route.js file implements import inline and does
+  not call importService.js — the service is available for reuse but unused.
+
+================================================================================
+9. EXPORT FLOW
+================================================================================
+
+Export downloads all records (or records from one batch) as a file.
+
+---- Client Side — Export Page (app/(dashboard)/export/page.jsx) ----
+
+  Shows buttons for: CSV, JSON, XLSX, XLS
+  On click: doExport("/api/v1/export/batch/all", format, "full-archive")
+
+  doExport():
+    1. fetch(endpoint + "?format=" + format)   — GET request
+    2. If response not ok → show error
+    3. const blob = await res.blob()
+    4. Create invisible <a> element, set href = URL.createObjectURL(blob)
+    5. Set a.download = filename.format
+    6. a.click()  → triggers browser download
+    7. URL.createObjectURL is cleaned up automatically by the browser
+
+---- Client Side — Batches Page (app/(dashboard)/batches/page.jsx) ----
+
+  Each batch has export buttons (CSV, JSON).
+  handleExport(batchId, format):
+    Same fetch + blob + anchor trick, with endpoint:
+    /api/v1/export/batch/<batchId>?format=<format>
+
+---- Server Side (app/api/v1/export/batch/[batchId]/route.js) ----
+
+  Auth: withAuth required.
+  Dynamic param: const { batchId } = await params  ← must await in Next.js 16
+
+  Step A — Determine scope:
+    URL segment "all" → export everything owned by this user
+    Any other value   → export only records from that specific batch
+
+  Step B — Build filter:
+    filter = { ownerId: req.user.id, deletedAt: null }
+    if (batchId !== "all") filter.batchId = batchId
+
+  Step C — Fetch records:
+    ArchiveRecord.find(filter)
+      .select("videoId driveLabel reporterName metadata createdAt")
+      .sort({ createdAt: -1 })
+      .lean()
+
+  Step D — Map to rows:
+    rows = records.map(r => ({
+      VideoID: r.videoId,
+      Drive: r.driveLabel || "",
+      Reporter: r.reporterName || "",
+      Metadata: r.metadata,
+    }))
+
+  Step E — Mark batch as exported (batch-specific exports only):
+    Batch.findOneAndUpdate({ _id: batchId, ownerId }, { exportedAt: new Date() })
+
+  Step F — Log the action:
+    ActivityLog.create({ action: "EXPORT", meta: { format, count, type } })
+
+  Step G — Format and return:
+
+    CSV:
+      header = "VideoID,Drive,Reporter,Metadata\r\n"
+      body = rows.map(r => escape each field with double-quote wrapping).join("\r\n")
+      Return: NextResponse with Content-Type: text/csv
+              Content-Disposition: attachment; filename="<name>.csv"
+
+    XLSX / XLS:
+      XLSX.utils.json_to_sheet(rows, { header: ["VideoID","Drive","Reporter","Metadata"] })
+        Creates a worksheet where row 1 = headers, rows 2+ = data.
+      XLSX.utils.book_new() + book_append_sheet(workbook, sheet, "Archive")
+      XLSX.write(workbook, { bookType: "xlsx"|"xls", type: "array" })
+        Returns a plain JS array of byte values.
+      new Uint8Array(buffer) converts to binary for the response.
+      Return: NextResponse with appropriate Content-Type for xlsx or xls.
+
+    JSON:
+      JSON.stringify(rows, null, 2)
+      Return: NextResponse with Content-Type: application/json
+
+  Note: lib/services/exportService.js also has exportToCSV() and exportToJSON()
+  functions. The route.js implements export inline and does not call those
+  service functions — they are available for future reuse.
+
+================================================================================
+10. SINGLE RECORD POST FLOW
+================================================================================
+
+This is the "New Record" form where a user manually enters one archive record.
+
+---- Client Side (app/(dashboard)/records/new/page.jsx) ----
+
+  On mount, three parallel requests:
+    GET /api/v1/reporters   → populate reporter dropdown
+    GET /api/v1/drives      → populate drive dropdown
+    POST /api/v1/batches    → get-or-create today's batch (returns batch._id)
+
+  Draft auto-save:
+    Whenever videoId or metadata has content, the form state is saved to
+    localStorage under key "nams_draft_record".
+    On mount, draft is restored from localStorage if it exists.
+    On successful save, draft is cleared.
+
+  Duplicate detection (real-time):
+    As the user types in the Video ID field, after a 400ms debounce:
+      GET /api/v1/records/check-duplicate?videoId=<value>
+    Shows: spinning indicator → green checkmark (available) or
+           red triangle (duplicate already exists).
+    The save button is disabled if duplicate is detected.
+
+  On form submit:
+    Validates: videoId and metadata must not be empty.
+    Blocks if dupCheck.duplicate is true.
+    POST /api/v1/records  body:
+      { videoId, driveId, driveLabel, reporterId, reporterName, metadata, batchId }
+    On success: clears draft from localStorage, navigates to /records.
+    On error: shows error message (e.g. "Duplicate Video ID" from server).
+
+---- Duplicate Check (GET /api/v1/records/check-duplicate) ----
+
+  Auth: withAuth required.
+  Reads videoId from query string: ?videoId=<value>
+  If empty → { duplicate: false }
+  ArchiveRecord.findOne({ ownerId: req.user.id, videoId: trimmed, deletedAt: null })
+  Returns: { duplicate: true|false, record: <doc>|null }
+
+---- Record Creation (POST /api/v1/records) ----
+
+  Auth: withAuth required.
+  Body: { videoId, driveId, driveLabel, reporterId, reporterName, metadata, batchId }
+
+  Validation:
+    videoId and metadata are required (400 if missing).
+
+  Database insert:
+    ArchiveRecord.create({
+      videoId: videoId.trim(),
+      driveId, driveLabel, reporterId, reporterName,
+      metadata: metadata.trim(),
+      ownerId: req.user.id,
+      batchId,
+      status: "committed",    ← immediately committed, not draft
+    })
+
+  On duplicate key (MongoDB error code 11000):
+    The unique index { ownerId, videoId } blocks duplicate video IDs.
+    Returns 409 "Duplicate Video ID — this record already exists for your account"
+
+  Side effects:
+    If batchId provided:
+      Batch.findByIdAndUpdate(batchId, { $inc: { recordCount: 1 } })
+    ActivityLog.create({ action: "CREATE", entityType: "archiveRecord", entityId: record._id })
+
+  Returns: HTTP 201 with the created record document.
+
+================================================================================
+11. RECORDS API — LIST, GET, EDIT, DELETE
+================================================================================
+
+---- GET /api/v1/records (list with pagination + search) ----
+
+  Auth: withAuth required.
+  Query params:
+    page     default 1, min 1
+    limit    default 50, max 100
+    q        full-text search query
+    batchId  filter by batch
+    reporter partial match on reporterName (case-insensitive regex)
+    drive    partial match on driveLabel (case-insensitive regex)
+
+  Filter always includes: { ownerId: req.user.id, deletedAt: null }
+
+  If q is present: uses MongoDB $text search with text score sorting.
+  Otherwise: sorted by createdAt descending (newest first).
+
+  Returns: { records, total, page, pages, limit }
+
+---- GET /api/v1/records/[id] ----
+
+  Auth: withAuth.
+  const { id } = await params   ← async in Next.js 16
+  ArchiveRecord.findOne({ _id: id, ownerId: req.user.id, deletedAt: null })
+  The ownerId check ensures users can only access their own records.
+  Returns 404 if not found.
+
+---- PUT /api/v1/records/[id] (edit) ----
+
+  Auth: withAuth.
+  Body: { driveId, driveLabel, reporterId, reporterName, metadata }
+  Note: videoId is NOT editable once created.
+  Updates the record and logs action: "EDIT"
+
+---- DELETE /api/v1/records/[id] (soft delete) ----
+
+  Auth: withAuth.
+  Sets deletedAt: new Date() on the record (soft delete, not physical removal).
+  If the record had a batchId, decrements Batch.recordCount by 1.
+  Logs action: "DELETE"
+
+================================================================================
+12. BATCHES — WHAT THEY ARE AND THEIR FULL LIFECYCLE
+================================================================================
+
+A batch is a daily grouping of records. One user gets exactly one batch per day.
+Batches are created automatically when a user imports data or creates a record.
+
+---- GET /api/v1/batches ----
+  Returns all non-deleted batches for the current user, sorted newest first.
+  Limit: 100 batches.
+
+---- POST /api/v1/batches (get-or-create today's batch) ----
+  today = new Date() with time zeroed to midnight.
+  Uses findOneAndUpdate with upsert: if batch for today doesn't exist, creates it.
+  $setOnInsert ensures the batch fields are only set on creation, not update.
+  The New Record form calls this on mount to always have a batch._id ready.
+
+---- GET /api/v1/batches/[id] ----
+  Returns one batch. Scoped to ownerId (users can't see other users' batches).
+
+---- POST /api/v1/batches/[id]/commit ----
+  Changes batch status from "open" → "committed".
+  Also updates all draft ArchiveRecords in the batch to "committed" status.
+  Records the committedAt timestamp on the batch.
+  Once committed, the batch is effectively read-only in the UI.
+  Logs action: "COMMIT"
+
+---- DELETE /api/v1/batches/[id] ----
+  Soft-deletes the batch (deletedAt: now).
+  Cascades: also soft-deletes all ArchiveRecords belonging to this batch.
+  Uses updateMany on ArchiveRecord with filter: { batchId, ownerId, deletedAt: null }
+  Shows a warning in the UI: "recoverable by admin" (implies only admin could
+  restore soft-deleted data, though no restore endpoint exists currently).
+
+Batch Status Lifecycle:
+  "open"      → Records can be added. Default for new batches.
+  "committed" → Locked. Created by /commit endpoint.
+  "archived"  → Schema supports it but no API endpoint transitions to this state.
+  (soft-)deleted → deletedAt is set. Excluded from all normal queries.
+
+Dashboard warning logic:
+  If it's after 6:00 PM and today's batch has 0 records (or doesn't exist),
+  the dashboard shows a warning: "No records added today."
+
+================================================================================
+13. DRIVES & REPORTERS — REFERENCE DATA
+================================================================================
+
+Both drives and reporters are user-scoped (each user has their own list).
+
+---- Drives ----
+  GET  /api/v1/drives     → list all active drives for current user
+  POST /api/v1/drives     → create new drive { label, location }
+  DELETE /api/v1/drives/[id] → soft-delete (sets isActive: false, deletedAt: now)
+
+  Drive label is unique per user. Duplicate returns 409.
+  During import, drives must already exist; they are looked up by label (case-insensitive).
+  The drive label is denormalized onto each ArchiveRecord for export without joins.
+
+---- Reporters ----
+  GET  /api/v1/reporters     → list all reporters for current user
+  POST /api/v1/reporters     → create new reporter { name }
+  DELETE /api/v1/reporters/[id] → soft-delete
+
+  Reporter name is unique per user. Duplicate returns 409.
+  During import, reporters are auto-created if not found.
+  The reporter name is denormalized onto each ArchiveRecord.
+
+================================================================================
+14. DASHBOARD ROUTE
+================================================================================
+
+GET /api/v1/dashboard
+
+Auth: withAuth required.
+Runs six parallel queries for the current user:
+  1. Total records (non-deleted)
+  2. Records created today
+  3. Count of active reporters
+  4. Count of active drives
+  5. Today's batch (if exists)
+  6. Most recent batch (by date)
+
+Computes:
+  showWarning = (currentHour >= 18) AND (no todayBatch OR todayBatch.recordCount === 0)
+
+Returns: { total, todayCount, reporterCount, driveCount, showWarning, lastBatch, todayBatch }
+
+================================================================================
+15. ADMIN ROUTES
+================================================================================
+
+All admin routes verify req.user.role === 'admin'.
+
+---- GET /api/v1/admin/users ----
+  Lists all non-deleted users (all roles). No ownerId filter — admins see everyone.
+
+---- POST /api/v1/admin/users ----
+  Creates a new user.
+  Body: { username, email, password, role }
+  bcrypt.hash(password, 12) → stores passwordHash.
+  Removes passwordHash from the response before returning.
+
+---- PUT /api/v1/admin/users/[id] ----
+  Updates isActive and/or role for a user.
+  Used to activate/deactivate accounts or promote to admin.
+
+---- DELETE /api/v1/admin/users/[id] ----
+  Soft-deletes a user: sets deletedAt: new Date(), isActive: false.
+
+---- GET /api/v1/admin/activity ----
+  Returns paginated activity log (all users). Page size: 50. Newest first.
+
+---- GET /api/v1/admin/stats ----
+  System-wide counts (no ownerId filter):
+    totalUsers, totalRecords, todayRecords, activeBatches (status: "open")
+
+================================================================================
+16. SERVICE LAYER — lib/services/
+================================================================================
+
+These files are NOT currently called by any API route. They represent a
+service abstraction written for potential reuse or future refactoring.
+The actual route files implement their logic inline.
+
+archiveService.js:
+  getRecords({ ownerId, q, reporterId, driveId, batchId, page, limit })
+  createRecord({ ownerId, videoId, driveId, reporterId, metadata, batchId })
+    ← this version validates that drive and reporter exist before creating
+  updateRecord({ id, ownerId, ...updates })
+    ← resolves drive/reporter label denormalization on update
+  softDeleteRecord({ id, ownerId })
+  checkDuplicate({ ownerId, videoId })
+  getRecord({ id, ownerId })
+
+batchService.js:
+  getOrCreateTodayBatch(ownerId)
+  getBatches(ownerId)
+  getBatch(id, ownerId)
+  commitBatch(id, ownerId)
+  softDeleteBatch(id, ownerId)  ← also cascades to records
+  checkTodayBatchWarning(ownerId)
+
+dashboardService.js:
+  getUserStats(ownerId)   → { total, todayCount, reporters, drives, lastBatch, showWarning }
+  getAdminStats()         → { totalRecords, todayRecords, totalUsers, totalReporters, totalDrives }
+
+exportService.js:
+  exportToJSON(ownerId, filter) → JSON string
+  exportToCSV(ownerId, filter)  → CSV string
+  (No XLSX support in this service; XLSX is only in the route.)
+
+importService.js:
+  processImport({ ownerId, batchId, rows })
+    ← expects rows pre-parsed (file reading is done before calling this)
+    ← stricter than route.js: errors if drive not found (does not silently skip)
+    ← auto-creates reporters if not found (same as route.js)
+
+================================================================================
+17. API RESPONSE UTILITIES  (lib/utils/apiResponse.js)
+================================================================================
+
+All API routes use these helpers for consistent response shapes:
+
+  ok(data, status=200)
+    → { success: true, data: <data> }  HTTP 200
+
+  created(data)
+    → { success: true, data: <data> }  HTTP 201
+
+  err(message, status=400)
+    → { success: false, error: <message> }  HTTP 400 (or custom)
+
+  unauthorized()
+    → { success: false, error: "Unauthorized" }  HTTP 401
+
+  forbidden()
+    → { success: false, error: "Forbidden" }  HTTP 403
+
+  notFound(msg="Not found")
+    → { success: false, error: <msg> }  HTTP 404
+
+  serverError(e)
+    → console.error(e) then
+    → { success: false, error: "Internal server error" }  HTTP 500
+
+On the client side, all responses are checked with:
+  if (res.success) { ... } else { setError(res.error) }
+
+================================================================================
+18. FRONTEND LAYOUT & AUTH GUARD
+================================================================================
+
+---- Root (app/page.js) ----
+  redirect("/dashboard")  → immediately sends everyone to dashboard.
+
+---- Dashboard Layout (app/(dashboard)/layout.jsx) ----
+  This is a client component. On every mount it runs:
+    fetch("/api/v1/auth/me")
+    If success: sets user state (passed down to Sidebar, Topbar)
+    If failure: router.replace("/login")  → redirects to login
+
+  While checking: shows a full-screen loading spinner.
+  Once checked: renders Sidebar + Topbar + <main> with children.
+
+  This means EVERY page inside (dashboard) checks auth on mount.
+  There is no server-side redirect; protection is entirely client-side
+  (the API routes are still protected server-side by withAuth).
+
+---- Login Page (app/(auth)/login/page.jsx) ----
+  Client component.
+  On mount: reads localStorage for theme preference ("nams-theme") and
+  applies dark/light class to document.documentElement.
+  Form submit: POST /api/v1/auth/login
+  On success: router.replace("/dashboard")
+
+================================================================================
+19. NEW RECORD FORM — CLIENT-SIDE LOGIC IN DETAIL
+================================================================================
+
+State:
+  form       = { videoId, driveId, driveLabel, reporterId, reporterName, metadata }
+  reporters  = [] (from API)
+  drives     = [] (from API)
+  batch      = null (today's batch from API)
+  dupCheck   = { loading, duplicate, checked }
+  saving     = false
+  error      = ""
+
+On mount:
+  - Fetches reporters, drives, and creates/gets today's batch (3 parallel requests)
+  - Restores draft from localStorage if present
+
+On videoId change:
+  - Updates form state
+  - Calls checkDuplicate(videoId) after 400ms debounce
+    → clears pending timer on each keystroke (prevents race conditions)
+    → only fires if videoId is non-empty
+
+On reporterId change:
+  - Sets reporterName by looking up the reporter in the local reporters array
+  - This denormalization happens client-side before sending to API
+
+On driveId change:
+  - Sets driveLabel by looking up the drive in the local drives array
+
+On submit:
+  - Client validates: both videoId and metadata required
+  - Blocks if duplicate detected
+  - POST /api/v1/records with full form data including batchId
+  - Clears localStorage draft on success
+
+================================================================================
+20. IMPORT PAGE — CLIENT-SIDE LOGIC
+================================================================================
+
+State:
+  file      = null (selected File object)
+  uploading = false
+  result    = null (API response data)
+  error     = ""
+  drag      = false (drag-over visual state)
+
+File selection:
+  - Drag-and-drop onto the drop zone triggers handleFile()
+  - Clicking drop zone triggers hidden <input type="file">
+  - handleFile() checks extension and size client-side before setting state
+
+Submit:
+  - Creates FormData, appends file
+  - POST /api/v1/import (multipart/form-data)
+  - Displays result summary: total / inserted / skipped / errors
+  - Error rows shown with row number and reason
+
+================================================================================
+21. EXPORT PAGE — CLIENT-SIDE LOGIC
+================================================================================
+
+Four format buttons: CSV, JSON, XLSX, XLS.
+All call the same doExport() function with different formats.
+
+doExport(endpoint, format, filename):
+  1. setLoading(format + endpoint)  ← tracks which button is in loading state
+  2. fetch(endpoint + "?format=" + format)
+  3. If !res.ok → show error, stop
+  4. const blob = await res.blob()
+  5. const a = document.createElement("a")
+     a.href = URL.createObjectURL(blob)
+     a.download = filename + "." + format
+     a.click()   ← triggers browser "Save As" or auto-download
+  6. Show success message
+
+Currently only "Export Full Archive" is on this page.
+Per-batch export is on the Batches page.
+
+================================================================================
+22. BATCHES PAGE — CLIENT-SIDE LOGIC
+================================================================================
+
+On mount: GET /api/v1/batches → populate batches list.
+Refresh button: re-fetches the list.
+
+For each batch, available actions depend on status:
+
+  Export (CSV):   GET /api/v1/export/batch/<id>?format=csv
+  Export (JSON):  GET /api/v1/export/batch/<id>?format=json
+  Commit:         Shown only if status === "open"
+                  Opens a confirmation modal.
+                  POST /api/v1/batches/<id>/commit
+  Delete:         Always available.
+                  Opens a confirmation modal.
+                  DELETE /api/v1/batches/<id>
+
+After commit or delete: re-fetches the batches list.
+
+================================================================================
+23. SEED SCRIPT (lib/utils/seed.js)
+================================================================================
+
+One-time setup script. Run manually with: node lib/utils/seed.js
+
+  - Connects to mongodb://127.0.0.1:27017/nams (hardcoded for local dev)
+  - Checks if admin user already exists; exits if so
+  - Creates user: username=admin, email=admin@nams.local, role=admin
+  - Password: admin123  (hashed with bcrypt, 12 rounds)
+
+Use this to bootstrap the first admin account in a fresh database.
+After seeding, the admin can create other users via the admin panel.
+
+================================================================================
+24. DATA FLOW DIAGRAMS (TEXT)
+================================================================================
+
+---- LOGIN FLOW ----
+
+  Browser                 Next.js Server              MongoDB
+  ──────                  ──────────────              ───────
+  POST /api/v1/auth/login
+    { username, password }
+                          check rateLimit(ip+user, 5, 60s)
+                          if blocked → 429
+
+                          User.findOne({ username, isActive, deletedAt:null })
+                          .select("+passwordHash")
+                                                      → returns user doc (with hash)
+                          if not found → 401
+
+                          bcrypt.compare(password, hash)
+                          if wrong → 401
+
+                          jwt.sign({ sub: userId, role })
+                          ActivityLog.create(LOGIN)
+                                                      → log saved
+
+  ← 200 + Set-Cookie: nams_token=<jwt>; httpOnly
+    { user: { id, username, email, role } }
+
+
+---- EVERY PROTECTED REQUEST ----
+
+  Browser                 Next.js Server              MongoDB
+  ──────                  ──────────────              ───────
+  GET /api/v1/... (with cookie nams_token)
+
+                          withAuth():
+                            read cookie → token
+                            jwt.verify(token, secret)
+                            if invalid → 401
+                            User.findOne({ _id: decoded.sub, isActive, deletedAt:null })
+                                                      → user doc
+                            if not found → 401
+                            req.user = { id, role, username }
+
+                          → handler runs with req.user available
+
+                          return response
+
+
+---- IMPORT FLOW ----
+
+  Browser                 Next.js Server              MongoDB
+  ──────                  ──────────────              ───────
+  POST /api/v1/import
+    FormData { file }
+                          withAuth() (validates cookie)
+                          parseRowsFromFile(file)
+                            → array of plain row objects
+
+                          get/create today's batch
+                                                      Batch upsert (date=today)
+                          load existing videoIds, reporters, drives
+                                                      3 parallel queries
+
+                          for each row:
+                            normalize field names
+                            validate videoId + metadata
+                            check duplicate against existingSet
+                            resolve reporter (auto-create if new)
+                            resolve drive (look up by label)
+                            build insert doc
+
+                          insertMany(toInsert, ordered:false)
+                                                      → ArchiveRecords created
+                          update batch recordCount
+                                                      → Batch.recordCount += inserted
+                          log IMPORT action
+                                                      → ActivityLog created
+
+  ← 200 { total, inserted, skipped, errors }
+
+
+---- EXPORT FLOW ----
+
+  Browser                 Next.js Server              MongoDB
+  ──────                  ──────────────              ───────
+  GET /api/v1/export/batch/all?format=xlsx
+  (or /batch/<id>?format=csv)
+
+                          withAuth() (validates cookie)
+                          const { batchId } = await params  ← async!
+                          determine filter (all or specific batchId)
+
+                          ArchiveRecord.find(filter)
+                          .select(videoId, driveLabel, reporterName, metadata)
+                          .sort({ createdAt: -1 })
+                                                      → records array
+
+                          if specific batch: update exportedAt on Batch
+                          log EXPORT action → ActivityLog
+
+                          format to CSV / XLSX / JSON
+                          build binary buffer (XLSX) or string (CSV, JSON)
+
+  ← Binary file response with Content-Disposition: attachment
+    Browser triggers download dialog / saves file
+
+
+---- NEW RECORD FLOW ----
+
+  Browser                 Next.js Server              MongoDB
+  ──────                  ──────────────              ───────
+  (on page mount)
+  GET /api/v1/reporters  ────────────────────────→  Reporter.find(ownerId)
+  GET /api/v1/drives     ────────────────────────→  Drive.find(ownerId)
+  POST /api/v1/batches   ────────────────────────→  Batch upsert (today)
+
+  (user types videoId)
+  GET /api/v1/records/check-duplicate?videoId=X
+                         ────────────────────────→  ArchiveRecord.findOne({ ownerId, videoId })
+  ← { duplicate: false }
+
+  (user submits form)
+  POST /api/v1/records
+    { videoId, driveId, driveLabel, reporterId, reporterName, metadata, batchId }
+
+                          withAuth()
+                          validate videoId + metadata not empty
+                          ArchiveRecord.create({...})
+                                                      → record saved (status: committed)
+                          Batch.findByIdAndUpdate($inc recordCount)
+                                                      → batch count updated
+                          ActivityLog.create(CREATE)
+                                                      → log saved
+
+  ← 201 { record: { ... } }
+  router.push("/records")
+
+================================================================================
+END OF DOCUMENT
+================================================================================

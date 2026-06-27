@@ -3,13 +3,14 @@ import { connectDB } from '@/lib/db/mongoose';
 import ArchiveRecord from '@/lib/db/models/ArchiveRecord';
 import Batch from '@/lib/db/models/Batch';
 import ActivityLog from '@/lib/db/models/ActivityLog';
-import { ok, err, notFound, serverError } from '@/lib/utils/apiResponse';
+import { ok, notFound, serverError } from '@/lib/utils/apiResponse';
 
 export async function GET(request, { params }) {
   return withAuth(request, async (req) => {
     try {
       await connectDB();
-      const record = await ArchiveRecord.findOne({ _id: params.id, ownerId: req.user.id, deletedAt: null }).lean();
+      const { id } = await params;
+      const record = await ArchiveRecord.findOne({ _id: id, ownerId: req.user.id, deletedAt: null }).lean();
       if (!record) return notFound('Record not found');
       return ok({ record });
     } catch (e) { return serverError(e); }
@@ -20,10 +21,11 @@ export async function PUT(request, { params }) {
   return withAuth(request, async (req) => {
     try {
       await connectDB();
+      const { id } = await params;
       const body = await req.json();
       const { driveId, driveLabel, reporterId, reporterName, metadata } = body;
       const record = await ArchiveRecord.findOneAndUpdate(
-        { _id: params.id, ownerId: req.user.id, deletedAt: null },
+        { _id: id, ownerId: req.user.id, deletedAt: null },
         { driveId, driveLabel, reporterId, reporterName, metadata },
         { new: true }
       );
@@ -38,8 +40,9 @@ export async function DELETE(request, { params }) {
   return withAuth(request, async (req) => {
     try {
       await connectDB();
+      const { id } = await params;
       const record = await ArchiveRecord.findOneAndUpdate(
-        { _id: params.id, ownerId: req.user.id, deletedAt: null },
+        { _id: id, ownerId: req.user.id, deletedAt: null },
         { deletedAt: new Date() },
         { new: true }
       );

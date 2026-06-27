@@ -8,8 +8,9 @@ export async function PUT(request, { params }) {
     try {
       if (req.user.role !== 'admin') return forbidden();
       await connectDB();
+      const { id } = await params;
       const { isActive, role } = await req.json();
-      const user = await User.findByIdAndUpdate(params.id, { isActive, role }, { new: true }).lean();
+      const user = await User.findByIdAndUpdate(id, { isActive, role }, { new: true }).lean();
       if (!user) return notFound('User not found');
       return ok({ user });
     } catch (e) { return serverError(e); }
@@ -21,7 +22,8 @@ export async function DELETE(request, { params }) {
     try {
       if (req.user.role !== 'admin') return forbidden();
       await connectDB();
-      const user = await User.findByIdAndUpdate(params.id, { deletedAt: new Date(), isActive: false }, { new: true });
+      const { id } = await params;
+      const user = await User.findByIdAndUpdate(id, { deletedAt: new Date(), isActive: false }, { new: true });
       if (!user) return notFound('User not found');
       return ok({ message: 'User deactivated' });
     } catch (e) { return serverError(e); }

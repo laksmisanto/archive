@@ -7,8 +7,9 @@ export async function DELETE(request, { params }) {
   return withAuth(request, async (req) => {
     try {
       await connectDB();
+      const { id } = await params;
       const r = await Reporter.findOneAndUpdate(
-        { _id: params.id, ownerId: req.user.id },
+        { _id: id, ownerId: req.user.id },
         { deletedAt: new Date(), isActive: false },
         { new: true }
       );
