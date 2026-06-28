@@ -10,12 +10,17 @@ import {
   Filter,
   X,
   RefreshCw,
+  FilterIcon,
+  CalendarDays,
 } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import Spinner from "@/components/ui/Spinner";
 import Modal from "@/components/ui/Modal";
+// data picker imports
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 export default function RecordsPage() {
   const [records, setRecords] = useState([]);
@@ -28,6 +33,9 @@ export default function RecordsPage() {
   const [delId, setDelId] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const timer = useRef(null);
+
+  // date picker
+  const [startDate, setStartDate] = useState(new Date());
 
   const fetch_ = useCallback(
     async (pg = 1, query = dq) => {
@@ -100,6 +108,44 @@ export default function RecordsPage() {
               New Record
             </Button>
           </Link>
+        </div>
+      </div>
+
+      {/* filter section data */}
+      <div className="flex items-center space-x-8">
+        <span className="flex justify-center items-center size-8 rounded-lg border border-success bg-success/20 text-success">
+          <FilterIcon size={18} />
+        </span>
+        <div className="flex items-center space-x-2 text-textPrimary">
+          <div className="w-60 flex items-center border border-inputBorder rounded-md">
+            <span className="block px-2 py-2">
+              <CalendarDays size={18} />
+            </span>
+            <DatePicker
+              className="text-base w-full py-2"
+              selected={startDate}
+              onChange={(date) => setStartDate(date)}
+            />
+          </div>
+          <span>To</span>
+          <div className="w-60 flex items-center border border-inputBorder rounded-md">
+            <span className="block px-2 py-2">
+              <CalendarDays size={18} />
+            </span>
+            <DatePicker
+              className="text-base w-full py-2"
+              selected={startDate}
+              onChange={(date) => setStartDate(date)}
+            />
+          </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          <label>Reporter</label>
+          <input
+            className="input-field"
+            type="text"
+            placeholder="Reporter name..."
+          />
         </div>
       </div>
 
@@ -212,7 +258,7 @@ export default function RecordsPage() {
             </span>
             <div className="flex gap-1">
               <Button
-                size="sm"
+                size="md"
                 variant="outline"
                 disabled={page === 1}
                 onClick={() => fetch_(page - 1)}
@@ -220,7 +266,7 @@ export default function RecordsPage() {
                 Previous
               </Button>
               <Button
-                size="sm"
+                size="md"
                 variant="outline"
                 disabled={page === pages}
                 onClick={() => fetch_(page + 1)}
@@ -237,16 +283,21 @@ export default function RecordsPage() {
         open={!!delId}
         onClose={() => setDelId(null)}
         title="Delete Record"
-        size="sm"
+        size="md"
       >
         <p className="text-sm text-textMuted mb-5">
           This record will be soft-deleted and can be recovered by an admin.
         </p>
         <div className="flex gap-2 justify-end">
-          <Button variant="outline" onClick={() => setDelId(null)}>
+          <Button size="md" variant="outline" onClick={() => setDelId(null)}>
             Cancel
           </Button>
-          <Button variant="danger" loading={deleting} onClick={handleDelete}>
+          <Button
+            size="md"
+            variant="danger"
+            loading={deleting}
+            onClick={handleDelete}
+          >
             Delete Record
           </Button>
         </div>

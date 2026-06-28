@@ -20,7 +20,7 @@ function ExportCard({ icon: Icon, title, desc, formats, onExport, loading }) {
         {formats.map((f) => (
           <Button
             key={f}
-            size="sm"
+            size="md"
             variant="outline"
             loading={loading === f}
             onClick={() => onExport(f)}
@@ -99,7 +99,7 @@ export default function ExportPage() {
           Go to the Batches page to export individual batches.
         </p>
         <a href="/batches">
-          <Button size="sm" variant="outline">
+          <Button size="md" variant="outline">
             <Layers size={13} />
             Go to Batches
           </Button>

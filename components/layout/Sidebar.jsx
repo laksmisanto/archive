@@ -147,7 +147,7 @@ export default function Sidebar({
       <div className="hidden lg:flex px-2 py-2 border-t border-divider">
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="w-full flex items-center justify-center p-2 rounded-lg bg-btnBg text-btnText  hover:bg-btnHover hover:text-btnText transition-colors"
+          className="w-full flex items-center justify-center p-3 rounded-lg bg-btnBg text-btnText  hover:bg-btnHover hover:text-btnText transition-colors"
         >
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>

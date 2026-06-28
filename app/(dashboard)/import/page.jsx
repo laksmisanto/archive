@@ -137,7 +137,7 @@ export default function ImportPage() {
           ].map(([col, req]) => (
             <div key={col} className="flex items-center gap-2">
               <span
-                className={`w-1.5 h-1.5 rounded-full ${req === "Required" ? "bg-red-400" : "bg-textMuted"}`}
+                className={`w-1.5 h-1.5 rounded-full ${req === "Required" ? "bg-danger" : "bg-textMuted"}`}
               />
               <span className="font-mono text-primary">{col}</span>
               <span className="text-textMuted">— {req}</span>
@@ -147,6 +147,7 @@ export default function ImportPage() {
       </div>
 
       <Button
+        size="lg"
         onClick={handleSubmit}
         disabled={!file}
         loading={uploading}

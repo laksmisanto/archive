@@ -464,8 +464,8 @@ html {
 
   .card {
     @apply rounded-xl border p-5;
-    background: var(--color-cardBg);
-    border-color: var(--color-cardBorder);
+    background: var(--color-dashboardCardBg);
+    border-color: var(--color-inputBorder);
   }
 
   .input {
