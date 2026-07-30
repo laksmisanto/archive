@@ -4,7 +4,7 @@ import ArchiveRecord from '@/lib/db/models/ArchiveRecord';
 import Batch from '@/lib/db/models/Batch';
 import ActivityLog from '@/lib/db/models/ActivityLog';
 import { ok, created, err, serverError } from '@/lib/utils/apiResponse';
-
+/*
 export async function GET(request) {
   return withAuth(request, async (req) => {
     try {
@@ -35,6 +35,56 @@ export async function GET(request) {
     } catch (e) { return serverError(e); }
   });
 }
+*/
+
+export async function GET(request) {
+  return withAuth(request, async (req) => {
+    try {
+      await connectDB();
+      const { searchParams } = new URL(req.url);
+      const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+      const limit = Math.min(100, parseInt(searchParams.get('limit') || '50'));
+      const q = searchParams.get('q') || '';
+      const batchId = searchParams.get('batchId') || '';
+      const reporter = searchParams.get('reporter') || '';
+      const drive = searchParams.get('drive') || '';
+
+      const filter = { ownerId: req.user.id, deletedAt: null };
+
+      if (q) {
+        const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const keywords = q.trim().split(/\s+/).filter(Boolean);
+
+        // every keyword must match at least one field (AND keywords, OR fields)
+        filter.$and = keywords.map((kw) => {
+          const re = new RegExp(escapeRegex(kw), 'i');
+          return {
+            $or: [
+              { videoId: re },
+              { driveLabel: re },
+              { reporterName: re },
+              { metadata: re },
+            ],
+          };
+        });
+      }
+
+      if (batchId) filter.batchId = batchId;
+      if (reporter) filter.reporterName = { $regex: reporter, $options: 'i' };
+      if (drive) filter.driveLabel = { $regex: drive, $options: 'i' };
+
+      const sort = { createdAt: -1 };
+
+      const [records, total] = await Promise.all([
+        ArchiveRecord.find(filter).sort(sort).skip((page - 1) * limit).limit(limit).lean(),
+        ArchiveRecord.countDocuments(filter),
+      ]);
+
+      return ok({ records, total, page, pages: Math.ceil(total / limit), limit });
+    } catch (e) { return serverError(e); }
+  });
+}
+
 
 export async function POST(request) {
   return withAuth(request, async (req) => {

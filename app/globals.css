@@ -22,6 +22,7 @@
   --bg: oklch(98.46% 0.002 247.84);
   --surface: oklch(98.48% 0.004 247.86);
   --divider: oklch(88.08% 0.016 235.4);
+
   /* Icons */
   --icon-text: oklch(54.12% 0.021 262.88);
   --icon-bg: oklch(98.48% 0.004 247.86);
@@ -524,7 +525,7 @@ html {
 }
 
 /* trasted color in tailwindcss */
-/* 
+/*
 background color : bg-gray-100 ;
 forground color : bg-gray-0;
 shadow-sm

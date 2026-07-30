@@ -12,6 +12,9 @@ import {
   RefreshCw,
   FilterIcon,
   CalendarDays,
+  Copy,
+  CopyCheck,
+  Check,
 } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
@@ -33,6 +36,17 @@ export default function RecordsPage() {
   const [delId, setDelId] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const timer = useRef(null);
+  const [copiedId, setCopiedId]=useState(null);
+
+  const handleCopyId = async(videoId) =>{
+    try{
+      await navigator.clipboard.writeText(videoId);
+      setCopiedId(videoId);
+      setTimeout(()=> setCopiedId(null), 2000);
+    }catch (err) {
+      console.error("Failed to copy text: ", err);
+    }
+  }
 
   // date picker
   const [startDate, setStartDate] = useState(new Date());
@@ -53,6 +67,58 @@ export default function RecordsPage() {
     },
     [dq],
   );
+
+function HighlightText({ text, query }) {
+  if (!text) return text;
+  const str = String(text);
+  const keywords = query.trim().split(/\s+/).filter(Boolean);
+  if (keywords.length === 0) return str;
+
+  const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  // find only the first occurrence of each keyword
+  const ranges = [];
+  keywords.forEach((kw) => {
+    const re = new RegExp(escapeRegex(kw), "i");
+    const match = str.match(re);
+    if (match && match.index !== undefined) {
+      ranges.push({ start: match.index, end: match.index + match[0].length });
+    }
+  });
+
+  if (ranges.length === 0) return str;
+
+  // sort and merge overlapping ranges (e.g. two keywords hitting the same spot)
+  ranges.sort((a, b) => a.start - b.start);
+  const merged = [ranges[0]];
+  for (let i = 1; i < ranges.length; i++) {
+    const last = merged[merged.length - 1];
+    const r = ranges[i];
+    if (r.start <= last.end) {
+      last.end = Math.max(last.end, r.end);
+    } else {
+      merged.push(r);
+    }
+  }
+
+  const parts = [];
+  let cursor = 0;
+  merged.forEach((r, i) => {
+    if (r.start > cursor) parts.push(str.slice(cursor, r.start));
+    parts.push(
+      <mark
+        key={i}
+        className="bg-statsEmerald text-btnText rounded-sm px-1 py-1"
+      >
+        {str.slice(r.start, r.end)}
+      </mark>,
+    );
+    cursor = r.end;
+  });
+  if (cursor < str.length) parts.push(str.slice(cursor));
+
+  return parts;
+}
 
   useEffect(() => {
     fetch_(1, dq);
@@ -152,7 +218,7 @@ export default function RecordsPage() {
       {/* Stats bar */}
       <div className="flex items-center gap-3 text-sm text-textMuted">
         <span>{total.toLocaleString()} records total</span>
-        {dq && <Badge variant="info">Searching: "{dq}"</Badge>}
+        {dq && <Badge variant="info">Searching: &quot;{dq}&quot;</Badge>}
       </div>
 
       {/* Table */}
@@ -202,20 +268,35 @@ export default function RecordsPage() {
                     key={r._id}
                     className={`border-b border-divider hover:bg-cardHover transition-colors ${i % 2 === 1 ? "bg-surface" : ""}`}
                   >
-                    <td className="px-4 py-3">
-                      <span className="font-mono text-xs font-medium text-primary">
-                        {r.videoId}
+                    <td className="px-4 py-3 flex items-center space-x-2">
+                      <button
+                        className="size-6 rounded-sm border-success bg-success text-btnText flex justify-center items-center"
+                        onClick={() => handleCopyId(r.videoId)}
+                      >
+                        {copiedId === r.videoId ? (
+                          <Check size={16} className="cursor-pointer"/>
+                        ) : (
+                          <Copy size={16} className="cursor-pointer"/>
+                        )}
+                      </button>
+                      <span className="font-mono text-sm font-medium text-textSecondary">
+                        <HighlightText text={r.videoId} query={dq} />
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-textPrimary hidden md:table-cell">
-                      <span className="text-xs">{r.driveLabel || "—"}</span>
+                    <td className="px-4 py-3 text-textSecondary hidden md:table-cell">
+                      <span className="text-sm">
+                        <HighlightText text={r.driveLabel || "—"} query={dq} />
+                      </span>
                     </td>
-                    <td className="px-4 py-3 text-textPrimary hidden sm:table-cell">
-                      <span className="text-xs">{r.reporterName || "—"}</span>
+                    <td className="px-4 py-3 text-textSecondary hidden sm:table-cell">
+                      <span className="text-sm">
+                        <HighlightText text={r.reporterName || "—"} query={dq} />
+                      </span>
                     </td>
-                    <td className="px-4 py-3 hidden lg:table-cell">
-                      <span className="text-xs text-textMuted line-clamp-1">
-                        {r.metadata}
+                    <td className="px-4 py-3 text-textSecondary hidden lg:table-cell">
+                      {/* <span className="text-xs text-textMuted line-clamp-1 py-1.5"> */}
+                      <span className="text-sm py-1.5">
+                        <HighlightText text={r.metadata} query={dq} />
                       </span>
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
@@ -253,7 +334,7 @@ export default function RecordsPage() {
         {/* Pagination */}
         {pages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-divider">
-            <span className="text-xs text-textMuted">
+            <span className="text-sm text-textMuted">
               Page {page} of {pages}
             </span>
             <div className="flex gap-1">
