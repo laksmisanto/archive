@@ -3,16 +3,12 @@ import { useState, useRef } from "react";
 import {
   Upload,
   FileText,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
   X,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Alert from "@/components/ui/Alert";
-import ImportEditCardPage from "./editcard/page";
 
-export default function ImportPage() {
+export default function ImportEditCardPage() {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState(null);
@@ -23,8 +19,8 @@ export default function ImportPage() {
   const handleFile = (f) => {
     if (!f) return;
     const ext = f.name.split(".").pop().toLowerCase();
-    if (!["json", "csv", "xlsx", "xls"].includes(ext)) {
-      setError("Only CSV, JSON, XLSX, and XLS files are supported");
+    if (!["json", "csv", "xlsx", "xls", "txt"].includes(ext)) {
+      setError("Only CSV, JSON, XLSX, XLS, TXT files are supported");
       return;
     }
     if (f.size > 50 * 1024 * 1024) {
@@ -49,7 +45,7 @@ export default function ImportPage() {
     setResult(null);
     const fd = new FormData();
     fd.append("file", file);
-    const res = await fetch("/api/v1/import", {
+    const res = await fetch("/api/v1/import/editcard", {
       method: "POST",
       body: fd,
     }).then((r) => r.json());
@@ -59,9 +55,7 @@ export default function ImportPage() {
   };
 
   return (
-   <>
     <div className="max-w-2xl mx-auto space-y-5 animate-fadeIn">
-      <h3 className="text-2xl font-bold text-textPrimary text-center mx-auto">Import Records</h3>
       <p className="text-sm text-textMuted">
         Import archive records from CSV, JSON, XLSX, or XLS files. Duplicates
         will be skipped automatically.
@@ -81,7 +75,7 @@ export default function ImportPage() {
         <input
           ref={inputRef}
           type="file"
-          accept=".csv,.json,.xlsx,.xls"
+          accept=".csv,.json,.xlsx,.xls,.txt"
           className="hidden"
           onChange={(e) => handleFile(e.target.files[0])}
         />
@@ -102,7 +96,7 @@ export default function ImportPage() {
               Drop your file here or click to browse
             </p>
             <p className="text-xs text-textMuted mt-1">
-              Supports CSV, JSON, XLSX, and XLS — max 50MB
+              Supports CSV, JSON, XLSX, XLS, TXT — max 50MB
             </p>
           </div>
         )}
@@ -133,10 +127,7 @@ export default function ImportPage() {
         </p>
         <div className="grid grid-cols-2 gap-2 text-xs">
           {[
-            ["videoid / video_id", "Required"],
             ["metadata / description", "Required"],
-            ["reporter", "Optional"],
-            ["drive / drivelabel", "Optional"],
           ].map(([col, req]) => (
             <div key={col} className="flex items-center gap-2">
               <span
@@ -158,70 +149,6 @@ export default function ImportPage() {
       >
         <Upload size={16} /> {uploading ? "Importing…" : "Start Import"}
       </Button>
-
-      {/* Result */}
-      {result && (
-        <div className="card p-5 space-y-3 animate-fadeIn">
-          <p className="text-sm font-semibold text-textPrimary">
-            Import Summary
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              {
-                label: "Total Rows",
-                value: result.total,
-                icon: FileText,
-                color: "text-textPrimary",
-              },
-              {
-                label: "Inserted",
-                value: result.inserted,
-                icon: CheckCircle,
-                color: "text-green-500",
-              },
-              {
-                label: "Skipped",
-                value: result.skipped,
-                icon: AlertTriangle,
-                color: "text-amber-500",
-              },
-              {
-                label: "Errors",
-                value: result.errors?.length || 0,
-                icon: XCircle,
-                color: "text-red-500",
-              },
-            ].map((s) => (
-              <div
-                key={s.label}
-                className="text-center p-3 bg-surface rounded-lg"
-              >
-                <s.icon size={16} className={`mx-auto mb-1 ${s.color}`} />
-                <p className={`text-lg font-bold ${s.color}`}>{s.value}</p>
-                <p className="text-xs text-textMuted">{s.label}</p>
-              </div>
-            ))}
-          </div>
-          {result.errors?.length > 0 && (
-            <div className="bg-surface rounded-lg p-3 max-h-32 overflow-y-auto">
-              <p className="text-xs font-medium text-textPrimary mb-2">
-                Row Errors:
-              </p>
-              {result.errors.map((e, i) => (
-                <p key={i} className="text-xs text-red-500">
-                  Row {e.row}: {e.reason}
-                </p>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
-    {/* ======================================Edit Card ====================================== */}
-   <div className="mt-20 animate-fadeIn">
-    <h3 className="text-2xl font-bold text-textPrimary text-center mx-auto mb-5">Edit Card</h3>
-     <ImportEditCardPage/>
-   </div>
-   </>
   );
 }

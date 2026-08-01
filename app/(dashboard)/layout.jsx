@@ -8,6 +8,7 @@ import Spinner from "@/components/ui/Spinner";
 const titles = {
   "/dashboard": "Dashboard",
   "/records": "Archive Records",
+  "/editcard":"Edit Card",
   "/records/new": "New Record",
   "/batches": "Batches",
   "/import": "Import Data",

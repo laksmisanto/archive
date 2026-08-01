@@ -18,11 +18,13 @@ import {
   Menu,
   X,
   Tv2,
+  SquarePen,
 } from "lucide-react";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Archive Records", href: "/records", icon: Archive },
+  { label: "Edit Card Records", href: "/editcard", icon: SquarePen },
   { label: "Batches", href: "/batches", icon: Layers },
   { label: "Import", href: "/import", icon: Upload },
   { label: "Export", href: "/export", icon: Download },
