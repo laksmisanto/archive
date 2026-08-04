@@ -108,7 +108,7 @@ function HighlightText({ text, query }) {
     parts.push(
       <mark
         key={i}
-        className="bg-statsEmerald text-btnText rounded-sm px-1 py-1"
+        className="bg-statsEmerald text-btnText rounded-sm px-1 py-0.5"
       >
         {str.slice(r.start, r.end)}
       </mark>,
@@ -239,12 +239,12 @@ function HighlightText({ text, query }) {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-textMuted uppercase tracking-wider hidden lg:table-cell">
                   Metadata
                 </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-textMuted uppercase tracking-wider hidden sm:table-cell">
+                {/* <th className="text-left px-4 py-3 text-xs font-semibold text-textMuted uppercase tracking-wider hidden sm:table-cell">
                   Status
                 </th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-textMuted uppercase tracking-wider">
                   Actions
-                </th>
+                </th> */}
               </tr>
             </thead>
             <tbody>
@@ -299,6 +299,7 @@ function HighlightText({ text, query }) {
                         <HighlightText text={r.metadata} query={dq} />
                       </span>
                     </td>
+                    {/*
                     <td className="px-4 py-3 hidden sm:table-cell">
                       <Badge variant={statusVariant(r.status)}>
                         {r.status}
@@ -324,6 +325,7 @@ function HighlightText({ text, query }) {
                         </button>
                       </div>
                     </td>
+                    */}
                   </tr>
                 ))
               )}

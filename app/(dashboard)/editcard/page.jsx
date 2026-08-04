@@ -40,7 +40,7 @@ function HighlightText({ text, query }) {
   merged.forEach((r, i) => {
     if (r.start > cursor) parts.push(str.slice(cursor, r.start));
     parts.push(
-      <mark key={i} className="bg-amber-200 dark:bg-amber-500/40 text-inherit rounded-sm px-0.5">
+      <mark key={i} className="bg-statsEmerald text-btnText rounded-sm px-1 py-0.5">
         {str.slice(r.start, r.end)}
       </mark>,
     );
@@ -123,9 +123,9 @@ export default function EditCardRecordsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-divider bg-surface">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-textMuted uppercase tracking-wider">Entry ID</th>
+                {/* <th className="text-left px-4 py-3 text-xs font-semibold text-textMuted uppercase tracking-wider">Entry ID</th> */}
                 <th className="text-left px-4 py-3 text-xs font-semibold text-textMuted uppercase tracking-wider">Metadata</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-textMuted uppercase tracking-wider">Actions</th>
+                {/* <th className="text-right px-4 py-3 text-xs font-semibold text-textMuted uppercase tracking-wider">Actions</th> */}
               </tr>
             </thead>
             <tbody>
@@ -138,23 +138,23 @@ export default function EditCardRecordsPage() {
               ) : (
                 records.map((r, i) => (
                   <tr key={r._id} className={`border-b border-divider hover:bg-cardHover transition-colors ${i % 2 === 1 ? "bg-surface" : ""}`}>
-                    <td className="px-4 py-3">
+                    {/* <td className="px-4 py-3">
                       <span className="font-mono text-xs font-medium text-primary">
                         <HighlightText text={r.entryId} query={dq} />
                       </span>
-                    </td>
+                    </td> */}
                     <td className="px-4 py-3 text-textPrimary">
                       <span className="text-xs">
                         <HighlightText text={r.metadata} query={dq} />
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    {/* <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
                         <button onClick={() => setDelId(r._id)} className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-textMuted hover:text-red-500 transition-colors">
                           <Trash2 size={14} />
                         </button>
                       </div>
-                    </td>
+                    </td> */}
                   </tr>
                 ))
               )}
