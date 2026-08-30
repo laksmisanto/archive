@@ -11,16 +11,30 @@ import Link from "next/link";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
+const defaultForm = {
+  videoId: "",
+  driveId: "",
+  driveLabel: "",
+  reporterId: "",
+  reporterName: "",
+  metadata: "",
+  archiveDate: new Date().toISOString(),
+};
+
 export default function NewRecordPage() {
   const router = useRouter();
-  const [form, setForm] = useState({
-    videoId: "",
-    driveId: "",
-    driveLabel: "",
-    reporterId: "",
-    reporterName: "",
-    metadata: "",
-  });
+  const draftKey = "nams_draft_record";
+  const initialForm = () => {
+    try {
+      const saved = localStorage.getItem(draftKey);
+      if (!saved) return defaultForm;
+      const parsed = JSON.parse(saved);
+      return { ...defaultForm, ...parsed, archiveDate: parsed.archiveDate || defaultForm.archiveDate };
+    } catch {
+      return defaultForm;
+    }
+  };
+  const [form, setForm] = useState(initialForm);
   const [reporters, setReporters] = useState([]);
   const [drives, setDrives] = useState([]);
   const [batch, setBatch] = useState(null);
@@ -32,9 +46,6 @@ export default function NewRecordPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const dupTimer = useRef(null);
-  const [archiveDate, setArchiveDate] = useState(new Date());
-  const draftKey = "nams_draft_record";
-
 
   useEffect(() => {
     // Load reporters, drives, batch
@@ -48,11 +59,6 @@ export default function NewRecordPage() {
       if (bt.success) setBatch(bt.data.batch);
     });
 
-    // Load draft from localStorage
-    try {
-      const saved = localStorage.getItem(draftKey);
-      if (saved) setForm(JSON.parse(saved));
-    } catch {}
   }, []);
 
   // Auto-save draft
@@ -107,12 +113,23 @@ export default function NewRecordPage() {
       setError("This Video ID already exists in your archive");
       return;
     }
+
+    const archiveDate = form.archiveDate ? new Date(form.archiveDate) : new Date();
+    if (Number.isNaN(archiveDate.getTime())) {
+      setError("Please select a valid archive date");
+      return;
+    }
+
     setSaving(true);
     setError("");
     const res = await fetch("/api/v1/records", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, batchId: batch?._id }),
+      body: JSON.stringify({
+        ...form,
+        archiveDate: archiveDate.toISOString(),
+        batchId: batch?._id,
+      }),
     }).then((r) => r.json());
     setSaving(false);
     if (res.success) {
@@ -161,8 +178,11 @@ export default function NewRecordPage() {
               </span>
               <DatePicker
                 className="text-base w-full py-2"
-                selected={archiveDate}
-                onChange={(date) => setArchiveDate(date)}
+                selected={form.archiveDate ? new Date(form.archiveDate) : new Date()}
+                onChange={(date) =>
+                  handleChange("archiveDate", date ? date.toISOString() : new Date().toISOString())
+                }
+                dateFormat="yyyy-MM-dd"
                 placeholderText={new Date().toLocaleDateString()}
               />
              </div>
