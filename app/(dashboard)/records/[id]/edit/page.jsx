@@ -63,18 +63,18 @@ export default function EditRecordPage() {
       {error && <Alert type="error">{error}</Alert>}
       <form onSubmit={handleSubmit} className="card p-6 space-y-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Select label="Reporter" value={form.reporterId} onChange={e => handleChange('reporterId', e.target.value)}>
+          <Select className='border border-inputBorder p-2 bg-dashboardCardBg rounded-md' label="Reporter" value={form.reporterId} onChange={e => handleChange('reporterId', e.target.value)}>
             <option value="">Select reporter…</option>
             {reporters.map(r => <option key={r._id} value={r._id}>{r.name}</option>)}
           </Select>
-          <Select label="Drive" value={form.driveId} onChange={e => handleChange('driveId', e.target.value)}>
+          <Select className='border border-inputBorder p-2 bg-dashboardCardBg rounded-md' label="Drive" value={form.driveId} onChange={e => handleChange('driveId', e.target.value)}>
             <option value="">Select drive…</option>
             {drives.map(d => <option key={d._id} value={d._id}>{d.label}</option>)}
           </Select>
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-textPrimary">Metadata <span className="text-red-400">*</span></label>
-          <textarea value={form.metadata} onChange={e => handleChange('metadata', e.target.value)} rows={6} className="input-base resize-none" />
+          <textarea className='w-full border border-inputBorder p-2 bg-dashboardCardBg rounded-md input-base resize-none'  value={form.metadata} onChange={e => handleChange('metadata', e.target.value)} rows={6} />
         </div>
         <div className="flex justify-end gap-2">
           <Link href={`/records/${id}`}><Button type="button" variant="outline">Cancel</Button></Link>

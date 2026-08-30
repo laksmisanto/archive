@@ -149,6 +149,8 @@ export async function POST(request) {
         const videoId = normalizeField(
           row,
           "videoid",
+          "videoId",
+          "Video ID",
           "video_id",
           "video id",
           "id",
@@ -157,19 +159,24 @@ export async function POST(request) {
         const metadata = normalizeField(
           row,
           "metadata",
+          "Metadata",
           "description",
           "desc",
           "Meta Data",
         ).trim();
+        const rawDate = normalizeField(row, "date", "Date", "DATE").trim();
         const reporterName = normalizeField(
           row,
           "reporter",
+          "reporterName",
           "reportername",
           "Reporter",
         ).trim();
         const driveLabel = normalizeField(
           row,
           "drive",
+          "Drive",
+          "driveName",
           "drivelabel",
           "drive_label",
           "drive number",
@@ -182,6 +189,15 @@ export async function POST(request) {
         }
         if (!metadata) {
           errors.push({ row: i + 2, reason: "Missing metadata" });
+          continue;
+        }
+        if (!rawDate) {
+          errors.push({ row: i + 2, reason: "Missing date" });
+          continue;
+        }
+        const archiveDate = new Date(rawDate);
+        if (Number.isNaN(archiveDate.getTime())) {
+          errors.push({ row: i + 2, reason: `Invalid date: ${rawDate}` });
           continue;
         }
         if (existingSet.has(videoId)) {
@@ -208,6 +224,7 @@ export async function POST(request) {
         existingSet.add(videoId);
         toInsert.push({
           videoId,
+          archiveDate,
           metadata,
           reporterId,
           reporterName,

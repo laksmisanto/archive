@@ -8,6 +8,14 @@ import Badge from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
 import Spinner from "@/components/ui/Spinner";
 
+const formatArchiveDate = (value) =>
+  new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(value));
+
 export default function RecordDetailPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -44,6 +52,7 @@ export default function RecordDetailPage() {
 
   const fields = [
     { label: "Video ID", value: record.videoId, mono: true },
+    { label: "Archive Date", value: formatArchiveDate(record.archiveDate) },
     { label: "Reporter", value: record.reporterName || "—" },
     { label: "Drive", value: record.driveLabel || "—" },
     { label: "Status", value: record.status, badge: true },

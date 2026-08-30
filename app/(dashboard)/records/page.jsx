@@ -25,6 +25,14 @@ import Modal from "@/components/ui/Modal";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
+const formatArchiveDate = (value) =>
+  new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(value));
+
 export default function RecordsPage() {
   const [records, setRecords] = useState([]);
   const [total, setTotal] = useState(0);
@@ -49,13 +57,21 @@ export default function RecordsPage() {
   }
 
   // date picker
-  const [startDate, setStartDate] = useState(new Date());
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+
+  const formatDateParam = (date) =>
+    date
+      ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+      : "";
 
   const fetch_ = useCallback(
     async (pg = 1, query = dq) => {
       setLoading(true);
       const params = new URLSearchParams({ page: pg, limit: 50 });
       if (query) params.set("q", query);
+      if (startDate) params.set("startDate", formatDateParam(startDate));
+      if (endDate) params.set("endDate", formatDateParam(endDate));
       const r = await fetch(`/api/v1/records?${params}`).then((x) => x.json());
       if (r.success) {
         setRecords(r.data.records);
@@ -65,7 +81,7 @@ export default function RecordsPage() {
       }
       setLoading(false);
     },
-    [dq],
+    [dq, endDate, startDate],
   );
 
 function HighlightText({ text, query }) {
@@ -121,8 +137,9 @@ function HighlightText({ text, query }) {
 }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetch_(1, dq);
-  }, [dq]);
+  }, [dq, fetch_]);
 
   const handleSearch = (val) => {
     setQ(val);
@@ -139,6 +156,7 @@ function HighlightText({ text, query }) {
   };
 
   const statusVariant = (s) => (s === "committed" ? "success" : "warning");
+
 
   return (
     <div className="space-y-4 animate-fadeIn">
@@ -177,7 +195,7 @@ function HighlightText({ text, query }) {
         </div>
       </div>
 
-      {/* filter section data */}
+      {/* filter section data filter by date */}
       <div className="flex items-center space-x-8">
         <span className="flex justify-center items-center size-8 rounded-lg border border-success bg-success/20 text-success">
           <FilterIcon size={18} />
@@ -191,6 +209,7 @@ function HighlightText({ text, query }) {
               className="text-base w-full py-2"
               selected={startDate}
               onChange={(date) => setStartDate(date)}
+              placeholderText={new Date().toLocaleDateString()}
             />
           </div>
           <span>To</span>
@@ -200,18 +219,12 @@ function HighlightText({ text, query }) {
             </span>
             <DatePicker
               className="text-base w-full py-2"
-              selected={startDate}
-              onChange={(date) => setStartDate(date)}
+              selected={endDate}
+              onChange={(date) => setEndDate(date)}
+              placeholderText={new Date().toLocaleDateString()}
             />
           </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <label>Reporter</label>
-          <input
-            className="input-field"
-            type="text"
-            placeholder="Reporter name..."
-          />
+          <button className="px-4 py-2 bg-danger text-btnText rounded-sm cursor-pointer" onClick={()=>{setStartDate(null); setEndDate(null)}}>Reset</button>
         </div>
       </div>
 
@@ -228,6 +241,9 @@ function HighlightText({ text, query }) {
             <thead>
               <tr className="border-b border-divider bg-surface">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-textMuted uppercase tracking-wider">
+                  Date
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-textMuted uppercase tracking-wider">
                   Video ID
                 </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-textMuted uppercase tracking-wider hidden md:table-cell">
@@ -239,12 +255,12 @@ function HighlightText({ text, query }) {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-textMuted uppercase tracking-wider hidden lg:table-cell">
                   Metadata
                 </th>
-                {/* <th className="text-left px-4 py-3 text-xs font-semibold text-textMuted uppercase tracking-wider hidden sm:table-cell">
+                 <th className="text-left px-4 py-3 text-xs font-semibold text-textMuted uppercase tracking-wider hidden sm:table-cell">
                   Status
                 </th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-textMuted uppercase tracking-wider">
                   Actions
-                </th> */}
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -268,6 +284,9 @@ function HighlightText({ text, query }) {
                     key={r._id}
                     className={`border-b border-divider hover:bg-cardHover transition-colors ${i % 2 === 1 ? "bg-surface" : ""}`}
                   >
+                    <td>
+                      {formatArchiveDate(r.archiveDate)}
+                    </td>
                     <td className="px-4 py-3 flex items-center space-x-2">
                       <button
                         className="size-6 rounded-sm border-success bg-success text-btnText flex justify-center items-center"
@@ -299,7 +318,7 @@ function HighlightText({ text, query }) {
                         <HighlightText text={r.metadata} query={dq} />
                       </span>
                     </td>
-                    {/*
+
                     <td className="px-4 py-3 hidden sm:table-cell">
                       <Badge variant={statusVariant(r.status)}>
                         {r.status}
@@ -325,7 +344,7 @@ function HighlightText({ text, query }) {
                         </button>
                       </div>
                     </td>
-                    */}
+
                   </tr>
                 ))
               )}

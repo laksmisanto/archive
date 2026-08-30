@@ -16,6 +16,8 @@ export async function GET(request) {
       const batchId = searchParams.get('batchId') || '';
       const reporter = searchParams.get('reporter') || '';
       const drive = searchParams.get('drive') || '';
+      const startDate = searchParams.get('startDate') || '';
+      const endDate = searchParams.get('endDate') || '';
 
       const filter = { ownerId: req.user.id, deletedAt: null };
 
@@ -28,6 +30,7 @@ export async function GET(request) {
           const re = new RegExp(escapeRegex(kw), 'i');
           return {
             $or: [
+              // {archiveDate:re},
               { videoId: re },
               { driveLabel: re },
               { reporterName: re },
@@ -40,6 +43,12 @@ export async function GET(request) {
       if (batchId) filter.batchId = batchId;
       if (reporter) filter.reporterName = { $regex: reporter, $options: 'i' };
       if (drive) filter.driveLabel = { $regex: drive, $options: 'i' };
+      if (startDate || endDate) {
+        filter.archiveDate = {};
+        if (startDate) filter.archiveDate.$gte = new Date(`${startDate}T00:00:00.000Z`);
+        if (endDate) filter.archiveDate.$lt = new Date(`${endDate}T00:00:00.000Z`);
+        if (endDate) filter.archiveDate.$lt.setUTCDate(filter.archiveDate.$lt.getUTCDate() + 1);
+      }
 
       const sort = { createdAt: -1 };
 
@@ -59,14 +68,15 @@ export async function POST(request) {
     try {
       await connectDB();
       const body = await req.json();
-      const { videoId, driveId, driveLabel, reporterId, reporterName, metadata, batchId } = body;
+      const { videoId, driveId, driveLabel, reporterId, reporterName, metadata, archiveDate, batchId } = body;
 
-      if (!videoId || !metadata) return err('videoId and metadata are required');
+      if (!videoId || !metadata || !archiveDate) return err('videoId, metadata, and archiveDate are required');
 
       const record = await ArchiveRecord.create({
         videoId: videoId.trim(),
         driveId, driveLabel, reporterId, reporterName,
         metadata: metadata.trim(),
+        archiveDate: new Date(archiveDate),
         ownerId: req.user.id,
         batchId,
         status: 'committed',

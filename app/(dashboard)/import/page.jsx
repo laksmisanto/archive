@@ -132,20 +132,23 @@ export default function ImportPage() {
           Expected Columns
         </p>
         <div className="grid grid-cols-2 gap-2 text-xs">
-          {[
-            ["videoid / video_id", "Required"],
-            ["metadata / description", "Required"],
-            ["reporter", "Optional"],
-            ["drive / drivelabel", "Optional"],
-          ].map(([col, req]) => (
-            <div key={col} className="flex items-center gap-2">
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${req === "Required" ? "bg-danger" : "bg-textMuted"}`}
-              />
-              <span className="font-mono text-primary">{col}</span>
-              <span className="text-textMuted">— {req}</span>
-            </div>
-          ))}
+         {[
+  ["Date (date)", "Required"],
+  ["Video ID (videoId, videoid, video_id)", "Required"],
+  ["Metadata (metadata, description)", "Required"],
+  ["Reporter (reporter, reporterName)", "Optional"],
+  ["Drive (drive, driveLabel, drivelabel)", "Optional"],
+].map(([col, req]) => (
+  <div key={col} className="flex items-center gap-2">
+    <span
+      className={`w-1.5 h-1.5 rounded-full ${
+        req === "Required" ? "bg-danger" : "bg-textMuted"
+      }`}
+    />
+    <span className="font-mono text-primary">{col}</span>
+    <span className="text-textMuted">— {req}</span>
+  </div>
+))}
         </div>
       </div>
 
