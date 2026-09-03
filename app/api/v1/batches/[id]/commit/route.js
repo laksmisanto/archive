@@ -19,5 +19,5 @@ export async function POST(request, { params }) {
       await ActivityLog.create({ userId: req.user.id, username: req.user.username, action: 'COMMIT', entityType: 'batch', entityId: batch._id, meta: { recordCount: batch.recordCount } });
       return ok({ batch });
     } catch (e) { return serverError(e); }
-  });
+  }, { requireWrite: true });
 }

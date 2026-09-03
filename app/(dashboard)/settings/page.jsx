@@ -8,10 +8,19 @@ import Alert from '@/components/ui/Alert';
 export default function SettingsPage() {
   const [user, setUser] = useState(null);
   const [msg, setMsg] = useState(null);
+  const [form, setForm] = useState({ username: '', email: '', password: '' });
 
   useEffect(() => {
-    fetch('/api/v1/auth/me').then(r => r.json()).then(d => { if (d.success) setUser(d.data.user); });
+    fetch('/api/v1/auth/me').then(r => r.json()).then(d => { if (d.success) { setUser(d.data.user); setForm({ username: d.data.user.username, email: d.data.user.email, password: '' }); } });
   }, []);
+
+  const save = async (event) => {
+    event.preventDefault();
+    const response = await fetch('/api/v1/auth/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+    const data = await response.json();
+    setMsg(data.success ? { type: 'success', text: 'Profile updated.' } : { type: 'error', text: data.error || 'Unable to update profile.' });
+    if (data.success) { setUser(data.data.user); setForm((current) => ({ ...current, password: '' })); }
+  };
 
   return (
     <div className="max-w-xl mx-auto space-y-5 animate-fadeIn">
@@ -42,6 +51,14 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      <form className="card p-5 space-y-4" onSubmit={save}>
+        <p className="text-sm font-semibold text-textPrimary">Account settings</p>
+        <Input label="Username" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required />
+        {user?.role === 'admin' && <Input label="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />}
+        <Input label="New password" type="password" minLength={6} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Leave blank to keep current password" />
+        <Button type="submit"><Save size={15} /> Save changes</Button>
+      </form>
 
       <div className="card p-5">
         <p className="text-sm font-semibold text-textPrimary mb-1">About NAMS</p>

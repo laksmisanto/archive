@@ -25,5 +25,5 @@ export async function POST(request) {
       if (e.code === 11000) return err('Drive already exists', 409);
       return serverError(e);
     }
-  });
+  }, { requireWrite: true });
 }

@@ -1,0 +1,83 @@
+I review code but see something need to be update and change/modify and add new feature. what I give you instruction you need to work in this boundary.
+after reading this text don't jump into code. Read full text than organize as your self how to resolved problem when you understand full topic you can start coding action.
+Data upload row limitation need to increases 2,00,000 row, max length 10MB size.
+file upload must be upload with header and without header.
+id and metadata is upload but drive, reporter, asset type field is empty visual.
+settings user can change her username and password but strongly they cannot change role and email.
+Add one more user role: Editor
+user can see Dashboard, Archive Records, Edit Card Records, they can search and filter only, they cannot create any id or upload any data in server(they only can read but not write).
+editor can see Dashboard, Archive Records, Edit Card Records, Batches, Import, Export, Settings page.
+Admin can create user but they cannot control fully. So give Admin full control they can see, modify/edit, delete, active, disable user and editor. admin can change her own username, email,
+data export must be update because of we update our table data field so export field should need to change.
+------------------------------------------------
+Edit card Record
+In this part we need to create own ID when we upload data in database. Add Edit Card Record form organize need first metadata field, than asset type, reporter, drive, date and quality field(new field optional not required).
+id create format depends on metadata. and reporter and drive can fetch all data in before existing data(we already have).
+# SYSTEM SPECIFICATION: News Archive Asset ID Generation
+
+## 1. Syntax & Schema Overview
+An Asset ID is a deterministic, 5-segment delimited string separated by underscores (`_`).
+
+Format:
+[SLUG]_[SUBTYPE]_[ASSET_TYPE]_[DATE]_[SEQUENCE]
+
+Delimiter: `_` (ASCII 0x5F)
+Allowed Character Set: `[a-z0-9_]` (Strictly lowercase alphanumeric and underscores)
+Regex Pattern: `^(?=.{21,28}$)[a-z0-9]{3,10}_[a-z0-9]{0,1}_[a-z0-9]{3}_\d{6}_\d{3}$`
+
+---
+
+## 2. Segment Rules & Constraints
+
+### Segment 1: Topic / Location Slug
+- Purpose: Short identifier for news topic or geographic location.
+- Type: Alphanumeric String (`a-z`, `0-9`, `_`)
+- Length: 3 to 10 characters (Strictly truncated at 10).
+- Sanitization:
+  - Convert to lowercase.
+  - Remove special characters (`#`, `@`, `-`, etc.).
+  - Replace spaces with single underscores (`_`).
+  - Trim leading/trailing underscores (e.g., `_coxbazar` -> `coxbazar`).
+
+### Segment 2: Sub-Classification Modifier
+- Purpose: Optional single-character taxonomy filter (e.g., `s`, `l`, `a`, `m`, `u`).
+- Type: Single Alphanumeric Character or Empty String.
+- Length: 0 to 1 character.
+- Structural Behavior: When empty, retains adjacent delimiters, creating double underscores (`__`) between Segment 1 and Segment 3.
+
+### Segment 3: Asset Type Code
+- Purpose: Identifies media material type.
+- Type: Fixed 3-character enumeration.
+- Allowed Values:
+  - `edc` : Edit Card / Packaged Edit
+  - `gvw` : General View / B-Roll
+  - `nws` : Raw News Feed
+  - `gfx` : Still Graphic / Motion Asset
+- Length: Exactly 3 characters.
+
+### Segment 4: Asset Ingest Date
+- Purpose: Temporal marker.
+- Type: Numeric String.
+- Date: Date must be recent date not selected data by react date piker.
+- Format: `DDMMYY` (Day: 2 digits, Month: 2 digits, Year: 2 digits).
+- Length: Exactly 6 digits (`\d{6}`).
+
+### Segment 5: Daily Sequence Counter
+- Purpose: Unique identifier counter per asset type per day.
+- Type: Zero-padded integer string.
+- Range: `001` through `999`.
+- Length: Exactly 3 digits (`\d{3}`).
+
+---
+
+## 3. Storage Constraints
+- Minimum Total Length: 21 characters (e.g., `bnp__edc_090122_001`)
+- Maximum Total Length: 28 characters (e.g., `trade_fair_s_edc_090122_001`)
+- SQL Type Recommendation: `VARCHAR(32)` or `CHAR(28)`
+
+If you need any information fell free to ask me.
+
+Add Edit Card Record and Edit Card Records,
+Add Edit Card Record design small change, metadata is full weight and others field is weight 50%(not full screen its existing with).
+when I upload no error showing in frontend and the database no date, drive, reporter, asset type, quality field are exits.
+Frontend it's showing every field but only showing id and metadata field data others is empty showing.

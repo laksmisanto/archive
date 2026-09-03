@@ -55,12 +55,25 @@ export default function BatchesPage() {
   };
 
   const handleExport = async (batchId, format = "csv") => {
-    const res = await fetch(`/api/v1/export/batch/${batchId}?format=${format}`);
-    const blob = await res.blob();
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `batch-export.${format}`;
-    a.click();
+    try {
+      const res = await fetch(`/api/v1/export/batch/${batchId}?format=${format}`);
+      if (!res.ok) {
+        setMsg({ type: "error", text: "Batch export failed. Please try again." });
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `batch-${batchId}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setMsg({ type: "error", text: "Batch export failed. Please try again." });
+    }
   };
 
   const statusVariant = (s) =>

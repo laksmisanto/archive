@@ -33,7 +33,7 @@ export async function PUT(request, { params }) {
       await ActivityLog.create({ userId: req.user.id, username: req.user.username, action: 'EDIT', entityType: 'archiveRecord', entityId: record._id });
       return ok({ record });
     } catch (e) { return serverError(e); }
-  });
+  }, { requireWrite: true });
 }
 
 export async function DELETE(request, { params }) {
@@ -53,5 +53,5 @@ export async function DELETE(request, { params }) {
       await ActivityLog.create({ userId: req.user.id, username: req.user.username, action: 'DELETE', entityType: 'archiveRecord', entityId: record._id });
       return ok({ message: 'Record deleted' });
     } catch (e) { return serverError(e); }
-  });
+  }, { requireWrite: true });
 }

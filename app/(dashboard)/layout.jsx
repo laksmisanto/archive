@@ -32,11 +32,14 @@ export default function DashboardLayout({ children }) {
     fetch("/api/v1/auth/me")
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (data?.data?.user) setUser(data.data.user);
+        if (data?.data?.user) {
+          setUser(data.data.user);
+          if (data.data.user.role === "user" && ["/import", "/export", "/batches"].some((path) => pathname === path || pathname.startsWith(`${path}/`))) router.replace("/dashboard");
+        }
         else router.replace("/login");
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [pathname, router]);
 
   const title =
     titles[pathname] ||

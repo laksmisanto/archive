@@ -93,5 +93,5 @@ export async function POST(request) {
       if (e.code === 11000) return err('Duplicate Video ID — this record already exists for your account', 409);
       return serverError(e);
     }
-  });
+  }, { requireWrite: true });
 }

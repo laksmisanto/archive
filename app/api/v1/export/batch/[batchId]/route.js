@@ -7,11 +7,27 @@ import { serverError } from "@/lib/utils/apiResponse";
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 
+const validFormats = new Set(["csv", "json", "xlsx", "xls"]);
+
+function serializeExportValue(value) {
+  if (value === undefined || value === null) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
 export async function GET(request, { params }) {
   return withAuth(request, async (req) => {
     try {
       await connectDB();
       const format = new URL(req.url).searchParams.get("format") || "csv";
+      if (!validFormats.has(format)) {
+        return new NextResponse(JSON.stringify({ message: "Unsupported export format" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
       const { batchId } = await params;
 
       const filter = { ownerId: req.user.id, deletedAt: null };
@@ -23,10 +39,10 @@ export async function GET(request, { params }) {
         .lean();
 
       const rows = records.map((r) => ({
-        VideoID: r.videoId,
-        Drive: r.driveLabel || "",
-        Reporter: r.reporterName || "",
-        Metadata: r.metadata,
+        VideoID: serializeExportValue(r.videoId),
+        Drive: serializeExportValue(r.driveLabel),
+        Reporter: serializeExportValue(r.reporterName),
+        Metadata: serializeExportValue(r.metadata),
       }));
 
       if (batchId !== "all") {
@@ -102,5 +118,5 @@ export async function GET(request, { params }) {
     } catch (e) {
       return serverError(e);
     }
-  });
+  }, { requireEditor: true });
 }

@@ -16,7 +16,7 @@ export async function GET(request) {
       const batches = await Batch.find({ ownerId: req.user.id, deletedAt: null }).sort({ date: -1 }).limit(100).lean();
       return ok({ batches });
     } catch (e) { return serverError(e); }
-  });
+  }, { requireEditor: true });
 }
 
 export async function POST(request) {
@@ -32,5 +32,5 @@ export async function POST(request) {
       );
       return created({ batch });
     } catch (e) { return serverError(e); }
-  });
+  }, { requireWrite: true });
 }

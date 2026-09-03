@@ -27,8 +27,8 @@ export default function ImportPage() {
       setError("Only CSV, JSON, XLSX, and XLS files are supported");
       return;
     }
-    if (f.size > 50 * 1024 * 1024) {
-      setError("File too large (max 50MB)");
+    if (f.size > 10 * 1024 * 1024) {
+      setError("File too large (max 10MB)");
       return;
     }
     setFile(f);
@@ -102,7 +102,7 @@ export default function ImportPage() {
               Drop your file here or click to browse
             </p>
             <p className="text-xs text-textMuted mt-1">
-              Supports CSV, JSON, XLSX, and XLS — max 50MB
+              Supports CSV, JSON, XLSX, and XLS — max 10MB
             </p>
           </div>
         )}
@@ -137,7 +137,7 @@ export default function ImportPage() {
   ["Video ID (videoId, videoid, video_id)", "Required"],
   ["Metadata (metadata, description)", "Required"],
   ["Reporter (reporter, reporterName)", "Optional"],
-  ["Drive (drive, driveLabel, drivelabel)", "Optional"],
+  ["Drive (drive, driveLabel, drivelabel)", "Required"],
 ].map(([col, req]) => (
   <div key={col} className="flex items-center gap-2">
     <span

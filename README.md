@@ -2,8 +2,23 @@
 
 > Internal archive metadata system for a news channel. Stores and manages references to physical video footage stored on drives.
 
+## Current Project Status
+
+The application is running locally with Next.js 16 and MongoDB. The main archive workflow is available, and the Edit Card Records workflow currently supports:
+
+- Excel, CSV, JSON, and TXT imports with headered or headerless rows
+- Date, ID, Drive, Metadata, Reporter, Asset Type, Category, and Quality fields
+- Existing Drive and Reporter master-data selection and validation
+- Standard asset types `GVW`, `EDC`, `DOC`, and `GFX`, plus custom three-character codes
+- Categories `SPORT`, `BUSINESS`, `WEATHER`, `SCIENCE`, `POLITICAL`, `CRIME`, and `OTHER`
+- Quality values `SD`, `HD`, `FHD`, `2K`, `4K`, and `8K`
+- Search and filtering by Edit Card asset type and category
+- Edit Card CSV, JSON, XLSX, and XLS export
+
+Archive batches remain separate from Edit Card records. A dedicated Edit Card batch history/download workflow is not yet implemented.
+
 ## Tech Stack
-- **Frontend:** Next.js 15 (App Router), React, Tailwind CSS, Lucide Icons
+- **Frontend:** Next.js 16 (App Router), React 19, Tailwind CSS, Lucide Icons
 - **Backend:** Next.js API Routes (REST)
 - **Database:** MongoDB + Mongoose ODM
 - **Auth:** JWT in HTTP-only cookies (8h expiry)
@@ -52,9 +67,12 @@ Open http://localhost:3000
 |---------|-------------|
 | Real-time duplicate detection | Instant Video ID check as you type (debounced) |
 | Draft auto-save | Form state saved to localStorage — survives browser crashes |
-| Batch system | Daily batches: OPEN → COMMITTED → ARCHIVED |
-| Import | CSV / JSON with per-row validation and summary report |
-| Export | CSV / JSON for any batch or full archive |
+| Batch system | Daily archive batches: OPEN → COMMITTED → ARCHIVED |
+| Import | Archive CSV / JSON and Edit Card CSV / JSON / XLSX / XLS / TXT with per-row validation and summary report |
+| Export | CSV / JSON / XLSX / XLS for archive batches, full archive, and Edit Card records |
+| Edit Card records | Dedicated records table with date, ID, drive, metadata, reporter, asset type, category, and quality |
+| Edit Card master data | Drives and Reporters are loaded from existing configured records |
+| Edit Card filters | Search plus Asset Type and Category query filters |
 | Search | Full-text search across Video ID, Metadata, Reporter, Drive |
 | Soft delete | Records never permanently deleted — recoverable by admin |
 | 6PM warning | Dashboard alert if no records uploaded by 6 PM |
@@ -93,7 +111,7 @@ pm2 start ecosystem.config.js --env production
 # See architecture document for full Nginx config
 ```
 
-## Import File Format
+## Archive Import File Format
 
 ### CSV
 ```csv
@@ -112,6 +130,25 @@ wc_opening_nws_110626_379,Shanto,AVECO BACKUP - 12,Full news description here
   }
 ]
 ```
+
+## Edit Card Import File Format
+
+The preferred column order is:
+
+```text
+Date, ID, Drive, Metadata, Reporter, Asset Type, Quality, Category
+```
+
+Header names are matched case-insensitively and common aliases such as `description`, `entryId`, `driveLabel`, and `reporterName` are accepted. Headerless files must use the same column order. ID is required for Edit Card imports and is stored exactly as supplied; rows whose ID already exists are skipped while the remaining rows continue importing. Older files without Category are accepted and use `OTHER`. Drive and Reporter values must already exist in the configured master-data lists.
+
+Example CSV:
+
+```csv
+Date,ID,Drive,Metadata,Reporter,Asset Type,Quality,Category
+2026-09-03,bnp__edc_040926_001,AVECO BACKUP - 12,Evening sports bulletin,Shanto,EDC,HD,SPORT
+```
+
+IDs are generated automatically from the metadata, asset type, date, and daily sequence. The generator uses the first free sequence from `000` through `999`, so deleted or unused slots are reusable. Uploads are blocked only when all 1,000 slots for that asset type and date are in use.
 
 ## Security Notes
 - JWT stored in HTTP-only cookie (not localStorage)

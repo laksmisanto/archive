@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Download, FileJson, FileText, Layers, Archive } from "lucide-react";
+import { Download, FileJson, FileText, Layers, Archive, SquarePen } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Alert from "@/components/ui/Alert";
 
@@ -40,26 +40,33 @@ export default function ExportPage() {
   const [success, setSuccess] = useState("");
 
   const doExport = async (endpoint, format, filename) => {
-    setLoading(format + endpoint);
+    setLoading(`${format}-${endpoint}`);
     setError("");
     setSuccess("");
     try {
       const res = await fetch(`${endpoint}?format=${format}`);
       if (!res.ok) {
-        setError("Export failed");
+        const errorText = await res.text().catch(() => "");
+        setError(errorText || "Export failed. Please try again.");
         setLoading("");
         return;
       }
+
       const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
+      a.href = url;
       a.download = `${filename}.${format}`;
+      document.body.appendChild(a);
       a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
       setSuccess(`Exported successfully as ${filename}.${format}`);
     } catch {
-      setError("Export failed");
+      setError("Export failed. Please try again.");
+    } finally {
+      setLoading("");
     }
-    setLoading("");
   };
 
   return (
@@ -90,6 +97,8 @@ export default function ExportPage() {
           doExport("/api/v1/export/batch/all", f, "full-archive")
         }
       />
+
+      <ExportCard icon={SquarePen} title="Export Edit Card Records" desc="Download IDs, metadata, asset types, and quality" formats={["csv", "json", "xlsx", "xls"]} loading={loading} onExport={(f) => doExport("/api/v1/export/editcard", f, "edit-card-records")} />
 
       <div className="card p-5">
         <p className="text-sm font-semibold text-textPrimary mb-1">

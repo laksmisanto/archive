@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Plus, UserCheck, UserX, Trash2, RefreshCw } from "lucide-react";
+import { Plus, UserCheck, UserX, Trash2, RefreshCw, Edit3 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
@@ -13,6 +13,7 @@ export default function UsersAdminPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [addModal, setAddModal] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
   const [form, setForm] = useState({
     username: "",
     email: "",
@@ -31,6 +32,7 @@ export default function UsersAdminPage() {
       })
       .finally(() => setLoading(false));
   };
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(load, []);
 
   const handleAdd = async (e) => {
@@ -49,6 +51,14 @@ export default function UsersAdminPage() {
       load();
     } else setMsg({ type: "error", text: res.error });
   };
+
+  const handleEdit = async (e) => {
+    e.preventDefault(); setSaving(true);
+    const res = await fetch(`/api/v1/admin/users/${editingUser._id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: form.username, email: form.email, role: form.role }) }).then((r) => r.json());
+    setSaving(false); if (res.success) { setEditingUser(null); setMsg({ type: "success", text: "User updated." }); load(); } else setMsg({ type: "error", text: res.error });
+  };
+
+  const removeUser = async (id) => { const res = await fetch(`/api/v1/admin/users/${id}`, { method: "DELETE" }).then((r) => r.json()); if (res.success) load(); else setMsg({ type: "error", text: res.error }); };
 
   const toggleActive = async (id, isActive) => {
     await fetch(`/api/v1/admin/users/${id}`, {
@@ -150,6 +160,8 @@ export default function UsersAdminPage() {
                           <UserCheck size={14} />
                         )}
                       </button>
+                      <button onClick={() => { setForm({ username: u.username, email: u.email, password: "", role: u.role }); setEditingUser(u); }} className="p-1.5 border border-CardBorder rounded bg-cardBg hover:bg-cardHover text-textMuted" title="Edit user"><Edit3 size={14} /></button>
+                      <button onClick={() => removeUser(u._id)} className="p-1.5 border border-CardBorder rounded bg-cardBg hover:bg-cardHover text-danger" title="Delete user"><Trash2 size={14} /></button>
                     </div>
                   </td>
                 </tr>
@@ -160,19 +172,19 @@ export default function UsersAdminPage() {
       </div>
 
       <Modal
-        open={addModal}
-        onClose={() => setAddModal(false)}
-        title="Create New User"
+        open={addModal || Boolean(editingUser)}
+        onClose={() => { setAddModal(false); setEditingUser(null); }}
+        title={editingUser ? "Edit User" : "Create New User"}
       >
-        <form onSubmit={handleAdd} className="space-y-4">
-          <Input
+        <form onSubmit={editingUser ? handleEdit : handleAdd} className="space-y-4">
+          {!editingUser && <Input
             label="Username"
             value={form.username}
             onChange={(e) =>
               setForm((p) => ({ ...p, username: e.target.value }))
             }
             required
-          />
+          />}
           <Input
             label="Email"
             type="email"
@@ -180,7 +192,7 @@ export default function UsersAdminPage() {
             onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
             required
           />
-          <Input
+          {!editingUser && <Input
             label="Password"
             type="password"
             value={form.password}
@@ -188,7 +200,7 @@ export default function UsersAdminPage() {
               setForm((p) => ({ ...p, password: e.target.value }))
             }
             required
-          />
+          />}
           <Select
             label="Role"
             value={form.role}
@@ -196,6 +208,7 @@ export default function UsersAdminPage() {
             onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}
           >
             <option value="user">User</option>
+            <option value="editor">Editor</option>
             <option value="admin">Admin</option>
           </Select>
           <div className="flex gap-2 justify-end pt-2">
@@ -203,12 +216,12 @@ export default function UsersAdminPage() {
               size="lg"
               type="button"
               variant="outline"
-              onClick={() => setAddModal(false)}
+              onClick={() => { setAddModal(false); setEditingUser(null); }}
             >
               Cancel
             </Button>
             <Button size="lg" type="submit" loading={saving}>
-              Create User
+              {editingUser ? "Save User" : "Create User"}
             </Button>
           </div>
         </form>

@@ -96,7 +96,7 @@ export default function Sidebar({
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
-        {navItems.map((item) => (
+        {navItems.filter((item) => user?.role !== "user" || ["/dashboard", "/records", "/editcard", "/settings"].includes(item.href)).map((item) => (
           <NavItem
             key={item.href}
             item={item}

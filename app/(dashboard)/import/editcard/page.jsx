@@ -23,8 +23,8 @@ export default function ImportEditCardPage() {
       setError("Only CSV, JSON, XLSX, XLS, TXT files are supported");
       return;
     }
-    if (f.size > 50 * 1024 * 1024) {
-      setError("File too large (max 50MB)");
+    if (f.size > 10 * 1024 * 1024) {
+      setError("File too large (max 10MB)");
       return;
     }
     setFile(f);
@@ -96,7 +96,7 @@ export default function ImportEditCardPage() {
               Drop your file here or click to browse
             </p>
             <p className="text-xs text-textMuted mt-1">
-              Supports CSV, JSON, XLSX, XLS, TXT — max 50MB
+              Supports CSV, JSON, XLSX, XLS, TXT — max 10MB
             </p>
           </div>
         )}
@@ -127,7 +127,14 @@ export default function ImportEditCardPage() {
         </p>
         <div className="grid grid-cols-2 gap-2 text-xs">
           {[
-            ["metadata / description", "Required"],
+            ["Date", "Optional"],
+            ["ID", "Required for import"],
+            ["Drive", "Required"],
+            ["Metadata / description", "Required"],
+            ["Reporter", "Optional"],
+            ["Asset Type", "Required"],
+            ["Quality", "Optional"],
+            ["Category", "Required"],
           ].map(([col, req]) => (
             <div key={col} className="flex items-center gap-2">
               <span

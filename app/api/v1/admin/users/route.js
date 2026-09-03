@@ -22,6 +22,7 @@ export async function POST(request) {
       await connectDB();
       const { username, email, password, role } = await req.json();
       if (!username || !email || !password) return err('username, email, password required');
+      if (!['admin', 'editor', 'user'].includes(role || 'user')) return err('Invalid role');
       const passwordHash = await bcrypt.hash(password, 12);
       const user = await User.create({ username: username.toLowerCase().trim(), email: email.toLowerCase().trim(), passwordHash, role: role || 'user' });
       const { passwordHash: _, ...safe } = user.toObject();
